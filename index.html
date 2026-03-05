@@ -2382,22 +2382,17 @@
                   </div>
                 )}
               </>
-            ) : githubSyncStatus === 'loading' ? (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4 animate-spin inline-block">⏳</div>
-                <p className="text-gray-300 text-lg font-semibold">Loading your library...</p>
-                <p className="text-gray-500 text-sm mt-2">Fetching movies from GitHub</p>
-              </div>
             ) : (
               <div className="text-center py-20">
-                <p className="text-gray-400 text-lg">No movies</p>
-                {githubSyncStatus === 'error' && (
-                  <div className="mt-4">
-                    <p className="text-red-400 text-sm mb-3">❌ Failed to load from GitHub</p>
-                    <button onClick={() => fetchFromGithub()} className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg text-sm font-semibold">
-                      🔄 Try Again
-                    </button>
+                {githubSyncStatus === 'loading' ? (
+                  <p className="text-gray-300 text-lg">⏳ Loading your library...</p>
+                ) : githubSyncStatus === 'error' ? (
+                  <div>
+                    <p className="text-red-400 mb-3">❌ Failed to load from GitHub</p>
+                    <button onClick={() => fetchFromGithub()} className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg text-sm font-semibold">🔄 Try Again</button>
                   </div>
+                ) : (
+                  <p className="text-gray-400">No movies</p>
                 )}
               </div>
             )}
