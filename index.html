@@ -316,13 +316,16 @@
             setMovies(data);
             await window.storage.set('movie-library-data', JSON.stringify(data));
             setGithubSyncStatus('success');
-            showNotification(`✅ Loaded ${data.length} movies from GitHub!`);
           } else {
             throw new Error('Invalid JSON format');
           }
         } catch (error) {
           setGithubSyncStatus('error');
-          showNotification('❌ GitHub load failed: ' + error.message);
+          console.warn('GitHub sync failed:', error.message);
+          // Only notify if manually triggered, not on auto-load startup
+          if (!urlOverride) {
+            showNotification('❌ GitHub load failed: ' + error.message);
+          }
         }
       };
 
