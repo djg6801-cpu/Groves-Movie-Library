@@ -93,6 +93,8 @@
       const [excludedFromFetch, setExcludedFromFetch] = useState(new Set());
       const [showFloatingButtons, setShowFloatingButtons] = useState(false);
       const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+      const [githubJsonUrl, setGithubJsonUrl] = useState('');
+      const [githubSyncStatus, setGithubSyncStatus] = useState('');
       const [autocompleteSuggestions, setAutocompleteSuggestions] = useState({
         director: [],
         genre: [],
@@ -166,9 +168,23 @@
             console.log('Using default API key');
           }
         };
+
+        const loadGithubUrl = async () => {
+          try {
+            const result = await window.storage.get('github-json-url');
+            if (result && result.value) {
+              setGithubJsonUrl(result.value);
+              // Auto-fetch from GitHub on startup
+              fetchFromGithub(result.value);
+            }
+          } catch (error) {
+            console.log('No GitHub URL configured');
+          }
+        };
         
         loadMovies();
         loadApiKey();
+        loadGithubUrl();
       }, []);
 
       useEffect(() => {
@@ -278,6 +294,41 @@
             showNotification('❌ Save failed: ' + (error.message || 'Unknown error'));
           }
         }
+      };
+
+      const fetchFromGithub = async (urlOverride) => {
+        const url = urlOverride || githubJsonUrl;
+        if (!url) {
+          showNotification('⚠️ No GitHub URL configured. Add it in Settings.');
+          return;
+        }
+        // Convert github.com URLs to raw.githubusercontent.com automatically
+        const rawUrl = url
+          .replace('https://github.com/', 'https://raw.githubusercontent.com/')
+          .replace('/blob/', '/');
+        setGithubSyncStatus('loading');
+        try {
+          const response = await fetch(rawUrl);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            setMovies(data);
+            await window.storage.set('movie-library-data', JSON.stringify(data));
+            setGithubSyncStatus('success');
+            showNotification(`✅ Loaded ${data.length} movies from GitHub!`);
+          } else {
+            throw new Error('Invalid JSON format');
+          }
+        } catch (error) {
+          setGithubSyncStatus('error');
+          showNotification('❌ GitHub load failed: ' + error.message);
+        }
+      };
+
+      const saveGithubUrl = async (url) => {
+        setGithubJsonUrl(url);
+        await window.storage.set('github-json-url', url);
+        showNotification('✅ GitHub URL saved!');
       };
 
       const exportToJSON = () => {
@@ -3166,6 +3217,38 @@
                   
                   <div className="p-6 space-y-4">
                     <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">🐙 GitHub Auto-Load</label>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Paste your <code className="bg-gray-700 px-1 rounded">movies.json</code> GitHub URL below. 
+                        The app will auto-load your library from GitHub every time it opens.<br/>
+                        <span className="text-blue-400">Tip:</span> Go to your file on GitHub → click the file → copy the URL from your browser.
+                      </p>
+                      <input 
+                        type="text" 
+                        value={githubJsonUrl} 
+                        onChange={(e) => setGithubJsonUrl(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-xs"
+                        placeholder="https://github.com/username/repo/blob/main/movies.json"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button 
+                          onClick={() => saveGithubUrl(githubJsonUrl)}
+                          className="flex-1 bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-semibold"
+                        >
+                          Save URL
+                        </button>
+                        <button 
+                          onClick={() => fetchFromGithub()}
+                          className="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                        >
+                          {githubSyncStatus === 'loading' ? '⏳ Loading...' : '🔄 Load Now'}
+                        </button>
+                      </div>
+                      {githubSyncStatus === 'success' && <p className="text-xs text-green-400 mt-1">✅ Last sync successful</p>}
+                      {githubSyncStatus === 'error' && <p className="text-xs text-red-400 mt-1">❌ Last sync failed — check URL</p>}
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-semibold text-purple-400 mb-2">OMDB API Key</label>
                       <p className="text-xs text-gray-400 mb-3">
                         Get your free API key at <a href="http://www.omdbapi.com/apikey.aspx" target="_blank" className="text-blue-400 hover:underline">omdbapi.com</a>
@@ -3374,6 +3457,17 @@
                     <Download className="w-5 h-5" />
                     <span>JSON</span>
                   </button>
+                  
+                  {githubJsonUrl && (
+                    <button 
+                      onClick={() => fetchFromGithub()}
+                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                      title="Reload from GitHub"
+                    >
+                      <span>🔄</span>
+                      <span>GitHub</span>
+                    </button>
+                  )}
                   
                   <label 
                     className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 cursor-pointer text-sm"
