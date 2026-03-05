@@ -1,0 +1,3622 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Movie Library</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body style="margin:0;padding:0">
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    
+    // SVG Icons
+    const Film = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></svg>;
+    const Upload = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>;
+    const Search = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+    const Star = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+    const Calendar = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
+    const Clock = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+    const Trash2 = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+    const AlertCircle = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
+    const Save = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
+    const Edit2 = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>;
+    const Plus = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5v14"/></svg>;
+    const X = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18m0-12 12 12"/></svg>;
+    const Download = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>;
+    const FolderOpen = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 14.5v-2.1c0-.3 0-.5-.1-.8a2 2 0 0 0-.8-1.2c-.2-.1-.5-.2-.8-.2H4.2c-.3 0-.5 0-.8.2-.3.1-.6.4-.8.8-.1.3-.1.5-.1.8V20c0 .3 0 .5.1.8.2.3.5.6.8.8.3.1.5.1.8.1h9.1"/><path d="M2 10V6.8c0-.3 0-.5.1-.8.2-.3.5-.6.8-.8.3-.1.5-.1.8-.1h3.5c.3 0 .6 0 .9.2L10 7h8.2c.3 0 .5 0 .8.1.3.2.6.5.8.8.1.3.1.5.1.8V10M18 21v-6m0 0-2.5 2.5M18 15l2.5 2.5"/></svg>;
+    const Grid3x3 = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>;
+    const List = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>;
+    const LayoutGrid = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>;
+    const Palette = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>;
+    const Settings = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+    const MessageSquare = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+    const Tv = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>;
+    const FileText = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
+
+    window.storage = {
+      get: async (key) => {
+        const value = localStorage.getItem(key);
+        return value ? { key, value } : null;
+      },
+      set: async (key, value) => {
+        localStorage.setItem(key, value);
+        return { key, value };
+      }
+    };
+
+    function MovieLibrary() {
+      const [movies, setMovies] = useState([]);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [activeSearch, setActiveSearch] = useState('');
+      const [sortBy, setSortBy] = useState('title');
+      const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+      const [filters, setFilters] = useState({
+        title: '',
+        director: '',
+        genre: '',
+        actor: '',
+        service: '',
+        yearFrom: '',
+        yearTo: '',
+        minRating: '',
+        maxRating: '',
+        mediaType: ''
+      });
+      const [duplicates, setDuplicates] = useState([]);
+      const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+      const [showIssuesPanel, setShowIssuesPanel] = useState(false);
+      const [editingMovie, setEditingMovie] = useState(null);
+      const [showManualEntry, setShowManualEntry] = useState(false);
+      const [fetchingPosters, setFetchingPosters] = useState(false);
+      const [searchSuggestions, setSearchSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      const [viewMode, setViewMode] = useState('grid');
+      const [notification, setNotification] = useState('');
+      const [theme, setTheme] = useState('purple');
+      const [showThemeMenu, setShowThemeMenu] = useState(false);
+      const [showClearConfirm, setShowClearConfirm] = useState(false);
+      const [showSettings, setShowSettings] = useState(false);
+      const [apiKey, setApiKey] = useState('346c76f9');
+      const [batchSize, setBatchSize] = useState(100);
+      const [selectedMovies, setSelectedMovies] = useState(new Set());
+      const [selectionMode, setSelectionMode] = useState(false);
+      const [showFetchReview, setShowFetchReview] = useState(false);
+      const [excludedFromFetch, setExcludedFromFetch] = useState(new Set());
+      const [showFloatingButtons, setShowFloatingButtons] = useState(false);
+      const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+      const [autocompleteSuggestions, setAutocompleteSuggestions] = useState({
+        director: [],
+        genre: [],
+        actor: [],
+        service: []
+      });
+      const [actorInput, setActorInput] = useState('');
+      const [serviceInput, setServiceInput] = useState('');
+      const [genreInput, setGenreInput] = useState('');
+      const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState({
+        director: -1,
+        genre: -1,
+        actor: -1,
+        service: -1
+      });
+      const [letterFilter, setLetterFilter] = useState('');
+      const [showFloatingSearch, setShowFloatingSearch] = useState(false);
+      const [undoStack, setUndoStack] = useState([]);
+      const [undoDescription, setUndoDescription] = useState('');
+      const [storageWarning, setStorageWarning] = useState(false);
+
+      useEffect(() => {
+        const loadMovies = async () => {
+          try {
+            const result = await window.storage.get('movie-library-data');
+            if (result && result.value) {
+              const parsed = JSON.parse(result.value);
+              
+              // Check size and warn if too large
+              const sizeInMB = (result.value.length / (1024 * 1024)).toFixed(2);
+              if (result.value.length > 3000000) {
+                setStorageWarning(true);
+                console.warn(`Library is ${sizeInMB}MB - approaching localStorage limits!`);
+              }
+              
+              // Check for corruption - if we have way too many movies or duplicates, something is wrong
+              if (Array.isArray(parsed)) {
+                // Remove exact duplicates by ID
+                const uniqueById = new Map();
+                parsed.forEach(m => {
+                  if (!uniqueById.has(m.id)) {
+                    uniqueById.set(m.id, m);
+                  }
+                });
+                
+                const cleaned = Array.from(uniqueById.values());
+                
+                if (cleaned.length !== parsed.length) {
+                  console.warn(`Removed ${parsed.length - cleaned.length} duplicate entries`);
+                  showNotification(`⚠️ Cleaned ${parsed.length - cleaned.length} corrupted entries`);
+                  setStorageWarning(true);
+                }
+                
+                setMovies(cleaned);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to load movies:', error);
+            showNotification('⚠️ Storage corrupted. Please import from JSON backup.');
+            setStorageWarning(true);
+          }
+        };
+        
+        const loadApiKey = async () => {
+          try {
+            const result = await window.storage.get('omdb-api-key');
+            if (result && result.value) {
+              setApiKey(result.value);
+            }
+          } catch (error) {
+            console.log('Using default API key');
+          }
+        };
+        
+        loadMovies();
+        loadApiKey();
+      }, []);
+
+      useEffect(() => {
+        if (notification) {
+          const timer = setTimeout(() => setNotification(''), 3000);
+          return () => clearTimeout(timer);
+        }
+      }, [notification]);
+
+      // Detect scroll to show/hide floating buttons and menu
+      useEffect(() => {
+        const handleScroll = () => {
+          const shouldShow = window.scrollY > 300;
+          setShowFloatingButtons(shouldShow);
+          setShowFloatingMenu(shouldShow);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      // Auto-save DISABLED - use Export JSON instead
+      // useEffect(() => {
+      //   if (movies.length > 0) {
+      //     const saveTimeout = setTimeout(async () => {
+      //       try {
+      //         const jsonData = JSON.stringify(movies);
+      //         console.log('Auto-saving', movies.length, 'movies, size:', jsonData.length, 'characters');
+      //         await window.storage.set('movie-library-data', jsonData);
+      //         console.log('Auto-save successful');
+      //       } catch (error) {
+      //         console.error('Auto-save failed:', error);
+      //         // Don't show notification for auto-save failures to avoid spam
+      //       }
+      //     }, 1000);
+      //     return () => clearTimeout(saveTimeout);
+      //   }
+      // }, [movies]);
+
+      const showNotification = (message) => setNotification(message);
+
+      const saveToUndo = (description) => {
+        // Save current state to undo stack (keep last 10 actions)
+        const snapshot = {
+          movies: JSON.parse(JSON.stringify(movies)),
+          description: description,
+          timestamp: Date.now()
+        };
+        setUndoStack(prev => [...prev.slice(-9), snapshot]);
+        setUndoDescription(description);
+        console.log(`Saved to undo: ${description}`);
+      };
+
+      const performUndo = () => {
+        if (undoStack.length === 0) {
+          showNotification('Nothing to undo!');
+          return;
+        }
+        
+        const lastState = undoStack[undoStack.length - 1];
+        setMovies(lastState.movies);
+        setUndoStack(prev => prev.slice(0, -1));
+        showNotification(`✅ Undone: ${lastState.description}`);
+        console.log(`Undone: ${lastState.description}`);
+      };
+
+      const themes = {
+        purple: { bg: 'from-gray-900 via-purple-900 to-gray-900', button: 'bg-purple-600 hover:bg-purple-700', border: 'border-purple-500/20 hover:border-purple-500/50', text: 'text-purple-400', gradient: 'from-purple-600 to-pink-600' },
+        blue: { bg: 'from-gray-900 via-blue-900 to-gray-900', button: 'bg-blue-600 hover:bg-blue-700', border: 'border-blue-500/20 hover:border-blue-500/50', text: 'text-blue-400', gradient: 'from-blue-600 to-cyan-600' },
+        green: { bg: 'from-gray-900 via-green-900 to-gray-900', button: 'bg-green-600 hover:bg-green-700', border: 'border-green-500/20 hover:border-green-500/50', text: 'text-green-400', gradient: 'from-green-600 to-emerald-600' },
+        red: { bg: 'from-gray-900 via-red-900 to-gray-900', button: 'bg-red-600 hover:bg-red-700', border: 'border-red-500/20 hover:border-red-500/50', text: 'text-red-400', gradient: 'from-red-600 to-orange-600' },
+        dark: { bg: 'from-black via-gray-900 to-black', button: 'bg-gray-700 hover:bg-gray-600', border: 'border-gray-500/20 hover:border-gray-500/50', text: 'text-gray-400', gradient: 'from-gray-700 to-slate-700' }
+      };
+
+      const currentTheme = themes[theme];
+
+      const clearLibrary = async () => {
+        saveToUndo(`Clear library (${movies.length} movies)`);
+        setMovies([]);
+        try {
+          await window.storage.set('movie-library-data', JSON.stringify([]));
+          showNotification('Library cleared!');
+        } catch (error) {
+          showNotification('Error clearing library');
+        }
+        setShowClearConfirm(false);
+      };
+
+      const saveMovies = async () => {
+        try {
+          const jsonData = JSON.stringify(movies);
+          const sizeInMB = (jsonData.length / (1024 * 1024)).toFixed(2);
+          console.log('Saving', movies.length, 'movies, size:', sizeInMB, 'MB');
+          
+          // Strong warning if approaching limits
+          if (jsonData.length > 3000000) { // ~3MB warning (give buffer)
+            showNotification(`⚠️ Library large (${sizeInMB}MB). Use Export JSON instead!`);
+            return;
+          }
+          
+          await window.storage.set('movie-library-data', jsonData);
+          showNotification(`✅ Saved ${movies.length} movies (${sizeInMB}MB)`);
+        } catch (error) {
+          console.error('Save error:', error);
+          if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+            showNotification('❌ Storage full! Use Export JSON instead.');
+          } else {
+            showNotification('❌ Save failed: ' + (error.message || 'Unknown error'));
+          }
+        }
+      };
+
+      const exportToJSON = () => {
+        try {
+          const jsonData = JSON.stringify(movies, null, 2);
+          const blob = new Blob([jsonData], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `movie-library-${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showNotification(`Exported ${movies.length} movies!`);
+        } catch (error) {
+          showNotification('Export failed');
+        }
+      };
+
+      const handleJSONUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (Array.isArray(data)) {
+              // Merge with existing movies using the same duplicate logic
+              mergeDuplicates(data);
+              showNotification(`Loaded ${data.length} movies from JSON!`);
+            } else {
+              showNotification('Invalid JSON format');
+            }
+          } catch (error) {
+            showNotification('Error reading JSON file');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      };
+
+      const importLetterboxdCSV = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            // Parse CSV using PapaParse
+            Papa.parse(event.target.result, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                console.log('=== LETTERBOXD IMPORT START ===');
+                console.log('Total rows in CSV:', results.data.length);
+                
+                let matched = 0;
+                let notFound = [];
+                let updated = 0;
+                
+                const updatedMovies = [...movies];
+                
+                results.data.forEach(row => {
+                  const title = row.Name || row.name;
+                  const year = row.Year || row.year;
+                  const rating = row.Rating || row.rating;
+                  const watchedDate = row['Watched Date'] || row['watched date'] || row.Date || row.date;
+                  const rewatch = (row.Rewatch || row.rewatch || '').toLowerCase() === 'yes';
+                  const tags = row.Tags || row.tags || '';
+                  const review = row.Review || row.review || '';
+                  
+                  if (!title) return;
+                  
+                  // Find matching movie in library
+                  const movieIndex = updatedMovies.findIndex(m => {
+                    const titleMatch = m.title.toLowerCase().trim() === title.toLowerCase().trim();
+                    const yearMatch = !year || !m.year || m.year === year;
+                    return titleMatch && yearMatch;
+                  });
+                  
+                  if (movieIndex >= 0) {
+                    // Update existing movie
+                    matched++;
+                    const movie = updatedMovies[movieIndex];
+                    
+                    // Only update if values changed
+                    let hasChanges = false;
+                    
+                    if (rating && rating !== movie.letterboxdRating) {
+                      movie.letterboxdRating = rating;
+                      hasChanges = true;
+                    }
+                    
+                    if (watchedDate && watchedDate !== movie.watchedDate) {
+                      // Convert date format if needed (YYYY-MM-DD)
+                      try {
+                        const parsedDate = new Date(watchedDate);
+                        if (!isNaN(parsedDate)) {
+                          movie.watchedDate = parsedDate.toISOString().split('T')[0];
+                          hasChanges = true;
+                        }
+                      } catch (e) {
+                        movie.watchedDate = watchedDate;
+                        hasChanges = true;
+                      }
+                    }
+                    
+                    if (rewatch !== movie.rewatch) {
+                      movie.rewatch = rewatch;
+                      hasChanges = true;
+                    }
+                    
+                    if (tags && tags !== movie.letterboxdTags) {
+                      movie.letterboxdTags = tags;
+                      hasChanges = true;
+                    }
+                    
+                    if (review && review !== movie.letterboxdReview) {
+                      movie.letterboxdReview = review;
+                      hasChanges = true;
+                    }
+                    
+                    if (hasChanges) {
+                      updated++;
+                      console.log(`✅ Updated: ${title} (${year})`);
+                    }
+                    
+                    updatedMovies[movieIndex] = movie;
+                  } else {
+                    notFound.push({ title, year, rating });
+                  }
+                });
+                
+                setMovies(updatedMovies);
+                
+                console.log('=== LETTERBOXD IMPORT COMPLETE ===');
+                console.log(`Matched: ${matched}`);
+                console.log(`Updated: ${updated}`);
+                console.log(`Not found: ${notFound.length}`);
+                
+                let message = `✅ Letterboxd Import Complete!\n\n`;
+                message += `• Matched: ${matched} movies\n`;
+                message += `• Updated: ${updated} movies\n`;
+                
+                if (notFound.length > 0) {
+                  message += `• Not found: ${notFound.length} movies\n\n`;
+                  message += `Missing movies:\n`;
+                  notFound.slice(0, 10).forEach(m => {
+                    message += `- ${m.title} (${m.year || 'no year'})\n`;
+                  });
+                  if (notFound.length > 10) {
+                    message += `...and ${notFound.length - 10} more\n`;
+                  }
+                  console.log('Not found:', notFound);
+                }
+                
+                showNotification(`Imported ${matched} Letterboxd ratings! (${updated} updated)`);
+                alert(message);
+              },
+              error: (error) => {
+                console.error('CSV parse error:', error);
+                showNotification('❌ Error parsing Letterboxd CSV');
+              }
+            });
+          } catch (error) {
+            console.error('Letterboxd import error:', error);
+            showNotification('❌ Error reading Letterboxd CSV');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      };
+
+      const exportToCSV = () => {
+        try {
+          const headers = ['Movie', 'Year', 'Director', 'Genre', 'Runtime', 'Plot', 'Actors', 'Service', 'IMDb Rating', 'My Score', 'Letterboxd Rating', 'Watched Date', 'Rewatch', 'Letterboxd Review', 'Personal Notes', 'Media Type', 'Poster'];
+          const rows = movies.map(m => [
+            m.title,
+            m.year,
+            m.director,
+            m.genre,
+            m.runtime,
+            m.plot,
+            m.actors,
+            m.service,
+            m.imdbRating,
+            m.myRating,
+            m.letterboxdRating || '',
+            m.watchedDate || '',
+            m.rewatch ? 'Yes' : 'No',
+            m.letterboxdReview || '',
+            m.notes || '',
+            m.mediaType || 'movie',
+            m.poster
+          ]);
+          const csv = [headers, ...rows].map(row => 
+            row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')
+          ).join('\n');
+          
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `movie-library-${new Date().toISOString().split('T')[0]}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showNotification(`Exported ${movies.length} movies to CSV!`);
+        } catch (error) {
+          showNotification('CSV export failed');
+        }
+      };
+
+      const normalizeTitle = (title) => {
+        // Normalize "and" and "&" to be treated the same
+        return title.replace(/\s+and\s+/gi, ' & ').replace(/\s+&\s+/g, ' & ');
+      };
+
+      const normalizeNumbers = (title) => {
+        // Convert written numbers to digits and vice versa for better matching
+        const numberMap = {
+          'zero': '0', '0': 'zero',
+          'one': '1', '1': 'one',
+          'two': '2', '2': 'two',
+          'three': '3', '3': 'three',
+          'four': '4', '4': 'four',
+          'five': '5', '5': 'five',
+          'six': '6', '6': 'six',
+          'seven': '7', '7': 'seven',
+          'eight': '8', '8': 'eight',
+          'nine': '9', '9': 'nine',
+          'ten': '10', '10': 'ten'
+        };
+        
+        // Try with written numbers replaced by digits
+        let normalized = title.toLowerCase();
+        Object.keys(numberMap).forEach(key => {
+          const regex = new RegExp('\\b' + key + '\\b', 'gi');
+          normalized = normalized.replace(regex, numberMap[key]);
+        });
+        
+        return normalized;
+      };
+
+      const cleanTitleForSearch = (title) => {
+        // Remove content in parentheses and brackets, normalize and/&, then trim
+        let cleaned = title
+          .replace(/\([^)]*\)/g, '') // Remove (content)
+          .replace(/\[[^\]]*\]/g, '') // Remove [content]
+          .trim();
+        
+        // Normalize "and" to "&" for consistency
+        cleaned = normalizeTitle(cleaned);
+        
+        return cleaned;
+      };
+
+      const fetchMovieData = async (title, year) => {
+        try {
+          const cleanedTitle = cleanTitleForSearch(title);
+          let searchTitle = encodeURIComponent(cleanedTitle);
+          const yearParam = year ? `&y=${year}` : '';
+          let url = `https://www.omdbapi.com/?apikey=${apiKey}&t=${searchTitle}${yearParam}`;
+          console.log('Fetching:', url, '(cleaned from:', title, ')');
+          let response = await fetch(url);
+          let data = await response.json();
+          
+          // If no results, try with number normalization
+          if (data.Response !== 'True') {
+            const normalizedTitle = normalizeNumbers(cleanedTitle);
+            if (normalizedTitle !== cleanedTitle.toLowerCase()) {
+              console.log('Trying with normalized numbers:', normalizedTitle);
+              searchTitle = encodeURIComponent(normalizedTitle);
+              url = `https://www.omdbapi.com/?apikey=${apiKey}&t=${searchTitle}${yearParam}`;
+              response = await fetch(url);
+              data = await response.json();
+            }
+          }
+          
+          console.log('Response for', title, ':', data);
+          
+          if (data.Response === 'True') {
+            return {
+              poster: data.Poster !== 'N/A' ? data.Poster : '',
+              plot: data.Plot !== 'N/A' ? data.Plot : '',
+              director: data.Director !== 'N/A' ? data.Director : '',
+              actors: data.Actors !== 'N/A' ? data.Actors : '',
+              genre: data.Genre !== 'N/A' ? data.Genre : '',
+              runtime: data.Runtime !== 'N/A' ? data.Runtime : '',
+              imdbRating: data.imdbRating !== 'N/A' ? data.imdbRating : '',
+              year: data.Year !== 'N/A' ? data.Year : '',
+              mediaType: data.Type === 'series' ? 'tv' : 'movie',
+            };
+          } else {
+            console.warn('OMDB Error:', data.Error);
+            if (data.Error) {
+              if (data.Error.includes('Invalid API key')) {
+                showNotification('❌ Invalid API key! Check activation email or get new key in Settings');
+                return null;
+              } else if (data.Error.includes('limit')) {
+                showNotification('⏰ API limit reached! Try again in 24 hours');
+                return null;
+              } else if (data.Error.includes('not activated')) {
+                showNotification('⚠️ API key not activated! Check your email for activation link');
+                return null;
+              }
+            }
+          }
+          return null;
+        } catch (error) {
+          console.error('Error fetching:', error);
+          return null;
+        }
+      };
+
+      const searchMovieSuggestions = async (title) => {
+        try {
+          const cleanedTitle = cleanTitleForSearch(title);
+          
+          // Try the original cleaned title first
+          let searchTitle = encodeURIComponent(cleanedTitle);
+          console.log('Searching suggestions for:', cleanedTitle, '(cleaned from:', title, ')');
+          let response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&s=${searchTitle}`);
+          let data = await response.json();
+          
+          // If no results, try with number normalization
+          if (data.Response !== 'True' || !data.Search) {
+            const normalizedTitle = normalizeNumbers(cleanedTitle);
+            if (normalizedTitle !== cleanedTitle.toLowerCase()) {
+              console.log('Trying with normalized numbers:', normalizedTitle);
+              searchTitle = encodeURIComponent(normalizedTitle);
+              response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&s=${searchTitle}`);
+              data = await response.json();
+            }
+          }
+          
+          if (data.Response === 'True' && data.Search) {
+            return data.Search.slice(0, 8).map(movie => ({
+              title: movie.Title,
+              year: movie.Year,
+              imdbID: movie.imdbID,
+              poster: movie.Poster !== 'N/A' ? movie.Poster : '',
+              type: movie.Type
+            }));
+          }
+          return [];
+        } catch (error) {
+          console.error('Error searching:', error);
+          return [];
+        }
+      };
+
+      const fetchMovieDataByID = async (imdbID) => {
+        try {
+          const response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&i=${imdbID}`);
+          const data = await response.json();
+          
+          if (data.Response === 'True') {
+            return {
+              title: data.Title,
+              poster: data.Poster !== 'N/A' ? data.Poster : '',
+              plot: data.Plot !== 'N/A' ? data.Plot : '',
+              director: data.Director !== 'N/A' ? data.Director : '',
+              actors: data.Actors !== 'N/A' ? data.Actors : '',
+              genre: data.Genre !== 'N/A' ? data.Genre : '',
+              runtime: data.Runtime !== 'N/A' ? data.Runtime : '',
+              imdbRating: data.imdbRating !== 'N/A' ? data.imdbRating : '',
+              year: data.Year !== 'N/A' ? data.Year : '',
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error('Error fetching by ID:', error);
+          return null;
+        }
+      };
+
+      const needsUpdate = (movie) => {
+        return !movie.poster || !movie.plot || !movie.imdbRating;
+      };
+
+      const shouldFetchMovie = (movie) => {
+        return needsUpdate(movie) && !excludedFromFetch.has(movie.id);
+      };
+
+      const toggleFetchExclusion = (movieId) => {
+        setExcludedFromFetch(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(movieId)) {
+            newSet.delete(movieId);
+          } else {
+            newSet.add(movieId);
+          }
+          return newSet;
+        });
+      };
+
+      const clearAllExclusions = () => {
+        setExcludedFromFetch(new Set());
+        showNotification('All exclusions cleared');
+      };
+
+      const fetchPostersForAll = async () => {
+        if (movies.length === 0) {
+          showNotification('No movies to fetch!');
+          return;
+        }
+        
+        // Filter out movies that already have complete data OR are excluded
+        const moviesToFetch = movies.filter(shouldFetchMovie);
+        const alreadyComplete = movies.filter(m => !needsUpdate(m)).length;
+        const excluded = excludedFromFetch.size;
+        
+        if (moviesToFetch.length === 0) {
+          showNotification('All movies already have data or are excluded!');
+          return;
+        }
+        
+        // Limit to batch size
+        const limitedFetch = moviesToFetch.slice(0, batchSize);
+        const remaining = Math.max(0, moviesToFetch.length - batchSize);
+        
+        setFetchingPosters(true);
+        showNotification(`Fetching ${limitedFetch.length} of ${moviesToFetch.length} movies (limit: ${batchSize}, excluded: ${excluded})...`);
+        
+        const updated = [];
+        let success = 0;
+        let failed = 0;
+        let apiLimitHit = false;
+        let fetchCount = 0;
+        
+        for (let i = 0; i < movies.length; i++) {
+          const m = movies[i];
+          
+          // Only fetch if missing data AND haven't hit batch limit AND not excluded
+          if (shouldFetchMovie(m) && fetchCount < batchSize) {
+            if (apiLimitHit) {
+              updated.push(m);
+              continue;
+            }
+            
+            try {
+              console.log(`Fetching ${fetchCount + 1}/${limitedFetch.length}: ${m.title}`);
+              const data = await fetchMovieData(m.title, m.year);
+              
+              if (data && data.poster) {
+                updated.push({
+                  ...m,
+                  poster: data.poster || m.poster,
+                  plot: data.plot || m.plot,
+                  director: data.director || m.director,
+                  actors: data.actors || m.actors,
+                  genre: data.genre || m.genre,
+                  runtime: data.runtime || m.runtime,
+                  imdbRating: data.imdbRating || m.imdbRating,
+                  year: data.year || m.year,
+                });
+                success++;
+                
+                // Update progress notification every 10 movies
+                if (success % 10 === 0) {
+                  showNotification(`Progress: ${success}/${limitedFetch.length} updated...`);
+                }
+              } else {
+                updated.push(m);
+                failed++;
+              }
+              fetchCount++;
+            } catch (error) {
+              console.error('Fetch error:', error);
+              if (error.message && error.message.includes('limit')) {
+                apiLimitHit = true;
+                showNotification('API limit reached! Stopping...');
+              }
+              updated.push(m);
+              failed++;
+              fetchCount++;
+            }
+            
+            // Wait between requests to avoid rate limiting
+            await new Promise(r => setTimeout(r, 350));
+          } else {
+            // Skip - either already has data or past batch limit
+            updated.push(m);
+          }
+        }
+        
+        setMovies(updated);
+        setFetchingPosters(false);
+        
+        if (apiLimitHit) {
+          showNotification(`API limit hit! Updated ${success}, Failed ${failed}. ${remaining} movies still need data.`);
+        } else if (remaining > 0) {
+          showNotification(`Batch complete! Updated ${success}, Failed ${failed}. ${remaining} movies still need data. Run again to continue.`);
+        } else {
+          showNotification(`Complete! Updated ${success}, Failed ${failed}, Skipped ${alreadyComplete}`);
+        }
+      };
+
+      const fetchSelectedMovies = async () => {
+        if (selectedMovies.size === 0) {
+          showNotification('No movies selected!');
+          return;
+        }
+        
+        setFetchingPosters(true);
+        const selectedArray = Array.from(selectedMovies);
+        showNotification(`Fetching ${selectedArray.length} selected movies...`);
+        
+        let success = 0;
+        let failed = 0;
+        
+        for (let i = 0; i < selectedArray.length; i++) {
+          const movieId = selectedArray[i];
+          const movieIndex = movies.findIndex(m => m.id === movieId);
+          
+          if (movieIndex === -1) continue;
+          
+          const m = movies[movieIndex];
+          
+          try {
+            console.log(`Fetching ${i + 1}/${selectedArray.length}: ${m.title}`);
+            const data = await fetchMovieData(m.title, m.year);
+            
+            if (data && data.poster) {
+              const updatedMovie = {
+                ...m,
+                poster: data.poster || m.poster,
+                plot: data.plot || m.plot,
+                director: data.director || m.director,
+                actors: data.actors || m.actors,
+                genre: data.genre || m.genre,
+                runtime: data.runtime || m.runtime,
+                imdbRating: data.imdbRating || m.imdbRating,
+                year: data.year || m.year,
+              };
+              setMovies(prev => prev.map(movie => movie.id === movieId ? updatedMovie : movie));
+              success++;
+              
+              if (success % 5 === 0) {
+                showNotification(`Progress: ${success}/${selectedArray.length}...`);
+              }
+            } else {
+              failed++;
+            }
+          } catch (error) {
+            console.error('Fetch error:', error);
+            failed++;
+          }
+          
+          await new Promise(r => setTimeout(r, 350));
+        }
+        
+        setFetchingPosters(false);
+        setSelectedMovies(new Set());
+        setSelectionMode(false);
+        showNotification(`Complete! Updated ${success}, Failed ${failed}`);
+      };
+
+      const toggleMovieSelection = (movieId) => {
+        setSelectedMovies(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(movieId)) {
+            newSet.delete(movieId);
+          } else {
+            newSet.add(movieId);
+          }
+          return newSet;
+        });
+      };
+
+      const selectAllVisible = () => {
+        const visibleIds = sorted.filter(needsUpdate).map(m => m.id);
+        setSelectedMovies(new Set(visibleIds));
+      };
+
+      const deselectAll = () => {
+        setSelectedMovies(new Set());
+      };
+
+      const fetchSingleMovieData = async (id) => {
+        const m = movies.find(movie => movie.id === id);
+        if (!m) return;
+        
+        // Skip if already has complete data
+        if (!needsUpdate(m)) {
+          showNotification('Movie already has complete data!');
+          return;
+        }
+        
+        // Check if excluded
+        if (excludedFromFetch.has(m.id)) {
+          showNotification('Movie is excluded from fetch. Uncheck exclusion first.');
+          return;
+        }
+        
+        showNotification('Fetching...');
+        const data = await fetchMovieData(m.title, m.year);
+        if (data) {
+          setMovies(movies.map(x => x.id === id ? {...x, ...data} : x));
+          showNotification('Updated!');
+        } else {
+          showNotification('Could not fetch data');
+        }
+      };
+
+      const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        window.Papa.parse(file, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (r) => {
+            if (!r.data || r.data.length === 0) return;
+            const processed = r.data.map((m, i) => ({
+              id: Date.now() + i,
+              title: String(m.Movie || m.movie || ''),
+              year: String(m.Year || m.year || ''),
+              director: String(m.Director || m.director || ''),
+              genre: String(m.Genre || m.genre || ''),
+              runtime: String(m.Runtime || m.runtime || ''),
+              plot: String(m.Plot || m.plot || ''),
+              actors: String(m.Actors || m.actors || ''),
+              service: String(m.Service || m.service || ''),
+              imdbRating: m['IMDb Rating'] || m['IMDB Rating'] || '',
+              myRating: m['My Score'] || m['My Rating'] || '',
+              poster: m.Poster || m.poster || '',
+              mediaType: (m['Media Type'] || m['media type'] || 'movie').toLowerCase(),
+            }));
+            mergeDuplicates(processed);
+          }
+        });
+        e.target.value = '';
+      };
+
+      const detectExistingDuplicates = () => {
+        console.log('=== DETECTING EXISTING DUPLICATES ===');
+        const titleMap = new Map();
+        const foundDuplicates = [];
+        
+        // Group movies by title+year composite key
+        movies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const year = m.year || '';
+          const compositeKey = `${titleKey}|${year}`;
+          
+          if (!titleMap.has(compositeKey)) {
+            titleMap.set(compositeKey, []);
+          }
+          titleMap.get(compositeKey).push(m);
+        });
+        
+        // Find title+year combinations with multiple entries (true duplicates)
+        titleMap.forEach((movieList, compositeKey) => {
+          if (movieList.length > 1) {
+            const [titleKey, year] = compositeKey.split('|');
+            console.log(`Found ${movieList.length} copies of: "${movieList[0].title}" (${year || 'no year'})`);
+            
+            // Add each pair as a duplicate
+            for (let i = 1; i < movieList.length; i++) {
+              foundDuplicates.push({
+                key: compositeKey,
+                existing: movieList[0], // First one is "existing"
+                new: movieList[i] // Others are "new"
+              });
+            }
+          }
+        });
+        
+        // Log movies with same title but different years (NOT duplicates)
+        const titleOnlyMap = new Map();
+        movies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          if (!titleOnlyMap.has(titleKey)) {
+            titleOnlyMap.set(titleKey, []);
+          }
+          titleOnlyMap.get(titleKey).push(m);
+        });
+        
+        titleOnlyMap.forEach((movieList, titleKey) => {
+          if (movieList.length > 1) {
+            const years = movieList.map(m => m.year).filter(Boolean);
+            const uniqueYears = [...new Set(years)];
+            
+            if (uniqueYears.length > 1) {
+              console.log(`ℹ️ Found "${movieList[0].title}" with different years: ${uniqueYears.join(', ')} - NOT merging (likely different films/remakes)`);
+            }
+          }
+        });
+        
+        if (foundDuplicates.length > 0) {
+          setDuplicates(foundDuplicates);
+          setShowIssuesPanel(true);
+          showNotification(`Found ${foundDuplicates.length} duplicate(s) in your library`);
+        } else {
+          showNotification('No duplicates found in your library!');
+        }
+        
+        console.log('=== DETECTION COMPLETE ===');
+      };
+
+      const mergeDuplicates = (newMovies) => {
+        console.log('=== MERGE DUPLICATES START ===');
+        console.log('Existing movies:', movies.length);
+        console.log('New movies to merge:', newMovies.length);
+        
+        const map = new Map();
+        let autoMerged = 0;
+        let newAdded = 0;
+        
+        // First, add all existing movies to the map using title+year as key
+        movies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const year = m.year || '';
+          const compositeKey = `${titleKey}|${year}`;
+          console.log(`Existing: "${m.title}" (${year || 'no year'}) -> key: "${compositeKey}" -> service: "${m.service}"`);
+          map.set(compositeKey, m);
+        });
+        
+        console.log('Map size after adding existing:', map.size);
+        
+        // Then merge new movies
+        newMovies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const newYear = m.year || '';
+          const compositeKey = `${titleKey}|${newYear}`;
+          console.log(`\nProcessing new: "${m.title}" (${newYear || 'no year'}) -> key: "${compositeKey}" -> service: "${m.service}"`);
+          
+          if (map.has(compositeKey)) {
+            // Exact match: same title AND same year - AUTO-MERGE!
+            const exist = map.get(compositeKey);
+            console.log(`  ✅ AUTO-MERGING (same title + same year)!`);
+            console.log(`    Existing: "${exist.title}" (${exist.year}) - ${exist.service}`);
+            console.log(`    New: "${m.title}" (${m.year}) - ${m.service}`);
+            
+            // Combine services from both entries
+            const existingServices = (exist.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            const newServices = (m.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            
+            console.log(`    Existing services array:`, existingServices);
+            console.log(`    New services array:`, newServices);
+            
+            const combinedServices = [...new Set([...existingServices, ...newServices])].join(', ');
+            
+            console.log(`    Combined result: "${combinedServices}"`);
+            
+            // Merge the movies, keeping existing data but filling in any blanks with new data
+            const merged = {
+              ...exist,
+              service: combinedServices,
+              // Keep existing data if present, otherwise use new data
+              imdbRating: exist.imdbRating || m.imdbRating,
+              myRating: exist.myRating || m.myRating,
+              plot: exist.plot || m.plot,
+              poster: exist.poster || m.poster,
+              director: exist.director || m.director,
+              actors: exist.actors || m.actors,
+              genre: exist.genre || m.genre,
+              runtime: exist.runtime || m.runtime,
+              year: exist.year || m.year,
+            };
+            
+            map.set(compositeKey, merged);
+            autoMerged++;
+            console.log(`    ✓ Merged successfully`);
+          } else {
+            // Check if there's a movie with same title but different year
+            const sameTitle = Array.from(map.values()).find(existing => 
+              existing.title.trim().toLowerCase() === titleKey
+            );
+            
+            if (sameTitle && sameTitle.year && newYear && sameTitle.year !== newYear) {
+              console.log(`  ⚠️ SAME TITLE, DIFFERENT YEAR - ADDING AS SEPARATE!`);
+              console.log(`    Existing: "${sameTitle.title}" (${sameTitle.year})`);
+              console.log(`    New: "${m.title}" (${newYear})`);
+              console.log(`    → Treating as separate movies (likely remake or different film)`);
+            } else {
+              console.log(`  → New movie (not duplicate)`);
+            }
+            
+            newAdded++;
+            // Add as separate movie
+            map.set(compositeKey, m);
+          }
+        });
+        
+        console.log('\n=== MERGE SUMMARY ===');
+        console.log('Auto-merged (same title + year):', autoMerged);
+        console.log('New movies added:', newAdded);
+        console.log('Final movie count:', map.size);
+        
+        const finalMovies = Array.from(map.values());
+        setMovies(finalMovies);
+        
+        // Show summary notification
+        const parts = [];
+        if (autoMerged > 0) parts.push(`${autoMerged} merged`);
+        if (newAdded > 0) parts.push(`${newAdded} added`);
+        
+        const summary = parts.length > 0 ? parts.join(', ') : 'No changes';
+        showNotification(`✅ Import complete! ${summary}`);
+        
+        console.log('=== MERGE DUPLICATES END ===\n');
+      };
+
+      const resolveDuplicate = (key, keepExisting) => {
+        const dup = duplicates.find(d => d.key === key);
+        if (!dup) return;
+        
+        // Decide which movie to keep
+        const keepMovie = keepExisting ? dup.existing : dup.new;
+        
+        // Parse composite key to get title and year
+        const [titleKey, year] = key.split('|');
+        
+        // Remove ALL movies with this exact title+year combo, then add back the one we're keeping
+        const filtered = movies.filter(m => {
+          const mTitleKey = m.title.trim().toLowerCase();
+          const mYear = m.year || '';
+          return !(mTitleKey === titleKey && mYear === year);
+        });
+        setMovies([...filtered, keepMovie]);
+        
+        // Remove this duplicate from the list
+        const remain = duplicates.filter(d => d.key !== key);
+        setDuplicates(remain);
+        
+        // Close panel if no more duplicates
+        if (remain.length === 0) {
+          setShowIssuesPanel(false);
+        }
+        
+        showNotification('Duplicate resolved!');
+      };
+
+      const keepBothDuplicates = (key) => {
+        const dup = duplicates.find(d => d.key === key);
+        if (!dup) return;
+        
+        // Just remove from duplicates list (both already exist in library)
+        const remain = duplicates.filter(d => d.key !== key);
+        setDuplicates(remain);
+        
+        // Close panel if no more duplicates
+        if (remain.length === 0) {
+          setShowIssuesPanel(false);
+        }
+        
+        showNotification('Kept both entries!');
+      };
+
+      const resolveAllDuplicates = (keepExisting) => {
+        // Build a map of which movies to keep (by composite key)
+        const keepMap = new Map();
+        
+        duplicates.forEach(dup => {
+          const keepMovie = keepExisting ? dup.existing : dup.new;
+          // Only keep one per composite key
+          if (!keepMap.has(dup.key)) {
+            keepMap.set(dup.key, keepMovie);
+          }
+        });
+        
+        // Filter out all duplicates, then add back the ones we're keeping
+        const nonDuplicates = movies.filter(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const year = m.year || '';
+          const compositeKey = `${titleKey}|${year}`;
+          return !keepMap.has(compositeKey);
+        });
+        
+        setMovies([...nonDuplicates, ...Array.from(keepMap.values())]);
+        setDuplicates([]);
+        setShowIssuesPanel(false);
+        showNotification('All duplicates resolved!');
+      };
+
+      const autoMergeAllDuplicates = () => {
+        // Merge all duplicates automatically by combining services
+        const mergedMap = new Map();
+        
+        // Add all non-duplicate movies first
+        movies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const year = m.year || '';
+          const compositeKey = `${titleKey}|${year}`;
+          const isDuplicate = duplicates.some(d => d.key === compositeKey);
+          
+          if (!isDuplicate) {
+            mergedMap.set(compositeKey, m);
+          }
+        });
+        
+        // Now merge duplicates
+        duplicates.forEach(dup => {
+          if (!mergedMap.has(dup.key)) {
+            // Combine services
+            const existingServices = (dup.existing.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            const newServices = (dup.new.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            const combinedServices = [...new Set([...existingServices, ...newServices])].join(', ');
+            
+            // Create merged movie
+            const merged = {
+              ...dup.existing,
+              service: combinedServices,
+              imdbRating: dup.existing.imdbRating || dup.new.imdbRating,
+              myRating: dup.existing.myRating || dup.new.myRating,
+              plot: dup.existing.plot || dup.new.plot,
+              poster: dup.existing.poster || dup.new.poster,
+              director: dup.existing.director || dup.new.director,
+              actors: dup.existing.actors || dup.new.actors,
+              genre: dup.existing.genre || dup.new.genre,
+              runtime: dup.existing.runtime || dup.new.runtime,
+              year: dup.existing.year || dup.new.year,
+            };
+            
+            mergedMap.set(dup.key, merged);
+          }
+        });
+        
+        setMovies(Array.from(mergedMap.values()));
+        setDuplicates([]);
+        setShowIssuesPanel(false);
+        showNotification(`Auto-merged all duplicates with combined services!`);
+      };
+
+      const autoDeduplicate = () => {
+        saveToUndo('Auto-deduplicate all movies');
+        
+        console.log('=== AUTO-DEDUPLICATE START ===');
+        console.log('Total movies before:', movies.length);
+        
+        // Build a map using title+year as composite key
+        const dedupeMap = new Map();
+        let duplicatesFound = 0;
+        let duplicatesRemoved = 0;
+        
+        movies.forEach(m => {
+          const titleKey = m.title.trim().toLowerCase();
+          const year = m.year || '';
+          const compositeKey = `${titleKey}|${year}`;
+          
+          if (dedupeMap.has(compositeKey)) {
+            // Duplicate found!
+            const existing = dedupeMap.get(compositeKey);
+            duplicatesFound++;
+            
+            console.log(`\n🔄 Merging duplicate: "${m.title}" (${year})`);
+            console.log(`  Existing id:${existing.id} - service: "${existing.service}"`);
+            console.log(`  Duplicate id:${m.id} - service: "${m.service}"`);
+            
+            // Combine services
+            const existingServices = (existing.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            const newServices = (m.service || '').split(',').map(s => s.trim()).filter(Boolean);
+            const combinedServices = [...new Set([...existingServices, ...newServices])].join(', ');
+            
+            // Merge data - keep existing ID, combine services, fill blanks
+            const merged = {
+              ...existing, // Keep first movie's ID
+              service: combinedServices,
+              imdbRating: existing.imdbRating || m.imdbRating,
+              myRating: existing.myRating || m.myRating,
+              plot: existing.plot || m.plot,
+              poster: existing.poster || m.poster,
+              director: existing.director || m.director,
+              actors: existing.actors || m.actors,
+              genre: existing.genre || m.genre,
+              runtime: existing.runtime || m.runtime,
+              year: existing.year || m.year,
+            };
+            
+            dedupeMap.set(compositeKey, merged);
+            duplicatesRemoved++;
+            
+            console.log(`  ✅ Merged -> id:${merged.id}, service: "${merged.service}"`);
+          } else {
+            // First occurrence, add to map
+            dedupeMap.set(compositeKey, m);
+          }
+        });
+        
+        const dedupedMovies = Array.from(dedupeMap.values());
+        
+        console.log('\n=== AUTO-DEDUPLICATE COMPLETE ===');
+        console.log(`Movies before: ${movies.length}`);
+        console.log(`Movies after: ${dedupedMovies.length}`);
+        console.log(`Duplicates found: ${duplicatesFound}`);
+        console.log(`Duplicates removed: ${duplicatesRemoved}`);
+        
+        setMovies(dedupedMovies);
+        
+        if (duplicatesRemoved > 0) {
+          showNotification(`✅ Removed ${duplicatesRemoved} duplicate(s)! ${movies.length} → ${dedupedMovies.length} movies`);
+        } else {
+          showNotification('✅ No duplicates found! Library is clean.');
+        }
+      };
+
+      const deleteMovie = (id) => {
+        const movie = movies.find(m => m.id === id);
+        saveToUndo(`Delete "${movie?.title || 'movie'}"`);
+        setMovies(movies.filter(m => m.id !== id));
+      };
+
+      const handleSearch = (e) => {
+        e.preventDefault();
+        const term = searchTerm.trim();
+        setActiveSearch(term);
+        if (term) {
+          const count = movies.filter(m => {
+            const s = term.toLowerCase();
+            return (m.title || '').toLowerCase().includes(s) || 
+                   (m.director || '').toLowerCase().includes(s) || 
+                   (m.genre || '').toLowerCase().includes(s) ||
+                   (m.actors || '').toLowerCase().includes(s);
+          }).length;
+          showNotification(`Found ${count} movies`);
+        }
+      };
+
+      const applyAdvancedFilters = () => {
+        setShowAdvancedSearch(false);
+        const count = filtered.length;
+        showNotification(`Applied filters: ${count} movies match`);
+      };
+
+      const clearAllFilters = () => {
+        setFilters({
+          title: '',
+          director: '',
+          genre: '',
+          actor: '',
+          service: '',
+          yearFrom: '',
+          yearTo: '',
+          minRating: '',
+          maxRating: '',
+        mediaType: ''
+        });
+        setActiveSearch('');
+        setSearchTerm('');
+        setLetterFilter('');
+        showNotification('All filters cleared');
+      };
+
+      const getAutocompleteSuggestions = (field, value) => {
+        if (!value || value.length < 2) return [];
+        
+        const valueLower = value.toLowerCase();
+        const suggestions = new Set();
+        
+        movies.forEach(m => {
+          let fieldValue = '';
+          if (field === 'director') fieldValue = m.director || '';
+          if (field === 'genre') {
+            // Split genres by comma and add each one
+            (m.genre || '').split(',').forEach(g => {
+              const trimmed = g.trim();
+              if (trimmed && trimmed.toLowerCase().includes(valueLower)) {
+                suggestions.add(trimmed);
+              }
+            });
+            return;
+          }
+          if (field === 'actor') {
+            // Split actors by comma and add each one
+            (m.actors || '').split(',').forEach(a => {
+              const trimmed = a.trim();
+              if (trimmed && trimmed.toLowerCase().includes(valueLower)) {
+                suggestions.add(trimmed);
+              }
+            });
+            return;
+          }
+          if (field === 'service') fieldValue = m.service || '';
+          
+          if (fieldValue && fieldValue.toLowerCase().includes(valueLower)) {
+            suggestions.add(fieldValue);
+          }
+        });
+        
+        return Array.from(suggestions).slice(0, 5);
+      };
+
+      const handleEditMovie = (m) => setEditingMovie({...m});
+      const handleUpdateMovie = () => {
+        setMovies(movies.map(m => m.id === editingMovie.id ? editingMovie : m));
+        setEditingMovie(null);
+        showNotification('Updated!');
+      };
+
+      const saveApiKey = async (newKey) => {
+        try {
+          await window.storage.set('omdb-api-key', newKey);
+          setApiKey(newKey);
+          showNotification('API key saved!');
+        } catch (error) {
+          showNotification('Error saving API key');
+        }
+      };
+
+      const handleAddMovie = () => {
+        setShowManualEntry(true);
+        setEditingMovie({id: Date.now(), title: '', year: '', director: '', genre: '', runtime: '', plot: '', actors: '', service: '', imdbRating: '', myRating: '', poster: '', mediaType: 'movie'});
+      setActorInput('');
+        setServiceInput('');
+        setGenreInput('');
+      };
+
+      const checkForDuplicate = (title) => {
+        if (!title || title.trim().length === 0) return null;
+        const key = title.trim().toLowerCase();
+        const existing = movies.find(m => m.title.trim().toLowerCase() === key);
+        return existing || null;
+      };
+
+      const addServiceTag = (serviceName) => {
+        if (!serviceName.trim()) return;
+        
+        const currentServices = editingMovie.service ? editingMovie.service.split(',').map(s => s.trim()) : [];
+        if (!currentServices.includes(serviceName.trim())) {
+          currentServices.push(serviceName.trim());
+          setEditingMovie({...editingMovie, service: currentServices.join(', ')});
+        }
+        setServiceInput('');
+        setAutocompleteSuggestions({...autocompleteSuggestions, service: []});
+      };
+
+      const removeServiceTag = (serviceToRemove) => {
+        const currentServices = editingMovie.service.split(',').map(s => s.trim());
+        const filtered = currentServices.filter(s => s !== serviceToRemove);
+        setEditingMovie({...editingMovie, service: filtered.join(', ')});
+      };
+
+      const addGenreTag = (genreName) => {
+        if (!genreName.trim()) return;
+        
+        const currentGenres = editingMovie.genre ? editingMovie.genre.split(',').map(g => g.trim()) : [];
+        if (!currentGenres.includes(genreName.trim())) {
+          currentGenres.push(genreName.trim());
+          setEditingMovie({...editingMovie, genre: currentGenres.join(', ')});
+        }
+        setGenreInput('');
+        setAutocompleteSuggestions({...autocompleteSuggestions, genre: []});
+      };
+
+      const removeGenreTag = (genreToRemove) => {
+        const currentGenres = editingMovie.genre.split(',').map(g => g.trim());
+        const filtered = currentGenres.filter(g => g !== genreToRemove);
+        setEditingMovie({...editingMovie, genre: filtered.join(', ')});
+      };
+
+      const addActorTag = (actorName) => {
+        if (!actorName.trim()) return;
+        
+        const currentActors = editingMovie.actors ? editingMovie.actors.split(',').map(a => a.trim()) : [];
+        if (!currentActors.includes(actorName.trim())) {
+          currentActors.push(actorName.trim());
+          setEditingMovie({...editingMovie, actors: currentActors.join(', ')});
+        }
+        setActorInput('');
+        setAutocompleteSuggestions({...autocompleteSuggestions, actor: []});
+      };
+
+      const removeActorTag = (actorToRemove) => {
+        const currentActors = editingMovie.actors.split(',').map(a => a.trim());
+        const filtered = currentActors.filter(a => a !== actorToRemove);
+        setEditingMovie({...editingMovie, actors: filtered.join(', ')});
+      };
+
+      const handleSaveNewMovie = () => {
+        if (!editingMovie.title) {
+          showNotification('Enter a title');
+          return;
+        }
+        setMovies([...movies, editingMovie]);
+        showNotification('Added!');
+        setEditingMovie({id: Date.now(), title: '', year: '', director: '', genre: '', runtime: '', plot: '', actors: '', service: '', imdbRating: '', myRating: '', poster: ''});
+      };
+
+      const handleSaveAndClose = () => {
+        if (!editingMovie.title) {
+          showNotification('Enter a title');
+          return;
+        }
+        setMovies([...movies, editingMovie]);
+        setEditingMovie(null);
+        setShowManualEntry(false);
+        showNotification('Added!');
+      };
+
+      const autoFillMovieData = async () => {
+        if (!editingMovie.title) {
+          showNotification('Enter title first');
+          return;
+        }
+        const cleanedTitle = cleanTitleForSearch(editingMovie.title);
+        showNotification(`Fetching "${cleanedTitle}"...`);
+        try {
+          const data = await fetchMovieData(editingMovie.title, editingMovie.year);
+          if (data && (data.poster || data.plot || data.imdbRating)) {
+            // Merge fetched data with existing data, keeping existing values if fetch returns empty
+            setEditingMovie({
+              ...editingMovie,
+              poster: data.poster || editingMovie.poster,
+              plot: data.plot || editingMovie.plot,
+              director: data.director || editingMovie.director,
+              actors: data.actors || editingMovie.actors,
+              genre: data.genre || editingMovie.genre,
+              runtime: data.runtime || editingMovie.runtime,
+              imdbRating: data.imdbRating || editingMovie.imdbRating,
+              year: data.year || editingMovie.year,
+            });
+            setShowSuggestions(false);
+            setSearchSuggestions([]);
+            showNotification('Data fetched successfully!');
+          } else {
+            // Exact match failed, search for suggestions
+            showNotification('Searching for matches...');
+            const suggestions = await searchMovieSuggestions(editingMovie.title);
+            if (suggestions.length > 0) {
+              setSearchSuggestions(suggestions);
+              setShowSuggestions(true);
+              showNotification(`Found ${suggestions.length} possible matches`);
+            } else {
+              showNotification('No matches found in database');
+              setShowSuggestions(false);
+              setSearchSuggestions([]);
+            }
+          }
+        } catch (error) {
+          console.error('Fetch error:', error);
+          showNotification('Error fetching data');
+        }
+      };
+
+      const selectSuggestion = async (suggestion) => {
+        showNotification('Loading selected movie...');
+        const data = await fetchMovieDataByID(suggestion.imdbID);
+        if (data) {
+          setEditingMovie({
+            ...editingMovie,
+            title: data.title || editingMovie.title,
+            poster: data.poster || editingMovie.poster,
+            plot: data.plot || editingMovie.plot,
+            director: data.director || editingMovie.director,
+            actors: data.actors || editingMovie.actors,
+            genre: data.genre || editingMovie.genre,
+            runtime: data.runtime || editingMovie.runtime,
+            imdbRating: data.imdbRating || editingMovie.imdbRating,
+            year: data.year || editingMovie.year,
+          });
+          setShowSuggestions(false);
+          setSearchSuggestions([]);
+          showNotification('Movie data loaded!');
+        } else {
+          showNotification('Error loading movie');
+        }
+      };
+
+      const getSortableTitle = (title) => {
+        // Remove "The" or "A" from the beginning for alphabetization
+        // "The Matrix" -> "Matrix"
+        // "A Beautiful Mind" -> "Beautiful Mind"
+        return title.replace(/^(The|A)\s+/i, '').trim();
+      };
+
+      const filtered = movies.filter(m => {
+        // Letter filter (based on sortable title)
+        if (letterFilter) {
+          const sortableTitle = getSortableTitle(m.title);
+          const firstLetter = sortableTitle.charAt(0).toUpperCase();
+          if (letterFilter === '#') {
+            // Numbers and special characters
+            if (!/^[A-Z]/.test(firstLetter)) {
+              // Continue to other filters
+            } else {
+              return false;
+            }
+          } else if (firstLetter !== letterFilter) {
+            return false;
+          }
+        }
+        
+        // Basic search
+        if (activeSearch) {
+          const s = activeSearch.toLowerCase();
+          const matchesBasic = (m.title || '').toLowerCase().includes(s) || 
+                 (m.director || '').toLowerCase().includes(s) || 
+                 (m.genre || '').toLowerCase().includes(s) ||
+                 (m.actors || '').toLowerCase().includes(s) ||
+                 (m.notes || '').toLowerCase().includes(s) ||
+                 (m.letterboxdReview || '').toLowerCase().includes(s);
+          if (!matchesBasic) return false;
+        }
+        
+        // Advanced filters
+        if (filters.title && !(m.title || '').toLowerCase().includes(filters.title.toLowerCase())) return false;
+        if (filters.director && !(m.director || '').toLowerCase().includes(filters.director.toLowerCase())) return false;
+        if (filters.genre && !(m.genre || '').toLowerCase().includes(filters.genre.toLowerCase())) return false;
+        if (filters.actor && !(m.actors || '').toLowerCase().includes(filters.actor.toLowerCase())) return false;
+        if (filters.service && !(m.service || '').toLowerCase().includes(filters.service.toLowerCase())) return false;
+        
+        // Media type filter
+        if (filters.mediaType && (m.mediaType || 'movie') !== filters.mediaType) return false;
+        
+        // Year range filter
+        const movieYear = parseInt(m.year);
+        if (filters.yearFrom && movieYear && movieYear < parseInt(filters.yearFrom)) return false;
+        if (filters.yearTo && movieYear && movieYear > parseInt(filters.yearTo)) return false;
+        
+        // Rating filter
+        const rating = parseFloat(m.imdbRating) || parseFloat(m.myRating);
+        if (filters.minRating && rating && rating < parseFloat(filters.minRating)) return false;
+        if (filters.maxRating && rating && rating > parseFloat(filters.maxRating)) return false;
+        
+        return true;
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        if (sortBy === 'title') {
+          const titleA = getSortableTitle(a.title);
+          const titleB = getSortableTitle(b.title);
+          return titleA.localeCompare(titleB);
+        }
+        if (sortBy === 'year') return (b.year || 0) - (a.year || 0);
+        if (sortBy === 'myRating') return (b.myRating || 0) - (a.myRating || 0);
+        if (sortBy === 'imdbRating') return (b.imdbRating || 0) - (a.imdbRating || 0);
+        if (sortBy === 'genre') return (a.genre || '').localeCompare(b.genre || '');
+        if (sortBy === 'director') return (a.director || '').localeCompare(b.director || '');
+        return 0;
+      });
+
+      return (
+        <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} text-white p-6`}>
+          <div className="max-w-7xl mx-auto">
+            {notification && (
+              <div className={`fixed top-4 right-4 ${currentTheme.button} text-white px-6 py-3 rounded-xl shadow-lg z-50`}>
+                {notification}
+              </div>
+            )}
+
+            {/* Storage Warning Banner */}
+            {storageWarning && (
+              <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-900 border-2 border-red-500 text-white px-6 py-4 rounded-xl shadow-2xl z-50 max-w-4xl">
+                <div className="flex items-start gap-4">
+                  <AlertCircle className="w-8 h-8 flex-shrink-0 text-red-300" />
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2">🚨 Storage Full - Action Required!</h3>
+                    <p className="text-sm mb-3">Your library is too large for localStorage. Changes may not save!</p>
+                    <div className="flex gap-3 flex-wrap">
+                      <button 
+                        onClick={exportToJSON}
+                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold text-sm"
+                      >
+                        1️⃣ Export JSON (Safe Backup)
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Clear localStorage? Your movies in memory are safe. Export first!')) {
+                            try {
+                              localStorage.removeItem('movie-library-data');
+                              setStorageWarning(false);
+                              showNotification('✅ Storage cleared!');
+                            } catch (error) {
+                              showNotification('❌ Failed to clear');
+                            }
+                          }
+                        }}
+                        className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg font-semibold text-sm"
+                      >
+                        2️⃣ Fix Storage
+                      </button>
+                      <button 
+                        onClick={() => setStorageWarning(false)}
+                        className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold text-sm"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4 relative">
+                <Film className={`w-12 h-12 ${currentTheme.text}`} />
+                <h1 className={`text-5xl font-bold bg-gradient-to-r ${currentTheme.gradient} bg-clip-text text-transparent`}>
+                  My Movie Library
+                </h1>
+                <button 
+                  onClick={() => setShowSettings(true)} 
+                  className="absolute right-0 p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-6 h-6 text-gray-400 hover:text-white" />
+                </button>
+              </div>
+              
+              <div className="flex items-center justify-center gap-4 mt-6 flex-wrap">
+                <button onClick={handleAddMovie} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold">
+                  <Plus className="w-5 h-5" />Add Movie
+                </button>
+                <button onClick={saveMovies} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl font-semibold">
+                  <Save className="w-5 h-5" />Save Now
+                </button>
+                <button onClick={exportToJSON} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-xl font-semibold">
+                  <Download className="w-5 h-5" />Export JSON
+                </button>
+                <label className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-xl font-semibold cursor-pointer">
+                  <input type="file" accept=".json" onChange={handleJSONUpload} className="hidden" />
+                  <FolderOpen className="w-5 h-5" />Import JSON
+                </label>
+                
+                <label className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 px-6 py-3 rounded-xl font-semibold cursor-pointer" title="Import your Letterboxd watched.csv file">
+                  <input type="file" accept=".csv" onChange={importLetterboxdCSV} className="hidden" />
+                  <FileText className="w-5 h-5" />
+                  <span className="flex items-center gap-1">
+                    <Star className="w-4 h-4" fill="currentColor" />
+                    Letterboxd
+                  </span>
+                </label>
+                
+                <button onClick={exportToCSV} className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 px-6 py-3 rounded-xl font-semibold">
+                  <Download className="w-5 h-5" />Export CSV
+                </button>
+                
+                <button onClick={detectExistingDuplicates} className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-xl font-semibold">
+                  <AlertCircle className="w-5 h-5" />Check Duplicates
+                </button>
+                
+                <button onClick={autoDeduplicate} className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 px-6 py-3 rounded-xl font-semibold">
+                  <AlertCircle className="w-5 h-5" />Auto-Deduplicate
+                </button>
+                
+                <button 
+                  onClick={performUndo} 
+                  disabled={undoStack.length === 0}
+                  className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 disabled:text-gray-500 px-6 py-3 rounded-xl font-semibold"
+                  title={undoStack.length > 0 ? `Undo: ${undoStack[undoStack.length - 1]?.description}` : 'Nothing to undo'}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 7v6h6"/>
+                    <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
+                  </svg>
+                  Undo {undoStack.length > 0 && `(${undoStack.length})`}
+                </button>
+                
+                {!selectionMode ? (
+                  <>
+                    <button onClick={fetchPostersForAll} disabled={fetchingPosters} className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-6 py-3 rounded-xl font-semibold">
+                      <Download className="w-5 h-5" />{fetchingPosters ? 'Fetching...' : `Fetch ${Math.min(batchSize, movies.filter(shouldFetchMovie).length)}`}
+                    </button>
+                    <button onClick={() => setShowFetchReview(true)} className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-xl font-semibold">
+                      Review List
+                    </button>
+                    <button onClick={() => setSelectionMode(true)} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-semibold">
+                      Select Movies
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={fetchSelectedMovies} disabled={fetchingPosters || selectedMovies.size === 0} className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-6 py-3 rounded-xl font-semibold">
+                      <Download className="w-5 h-5" />Fetch Selected ({selectedMovies.size})
+                    </button>
+                    <button onClick={selectAllVisible} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-xl font-semibold text-sm">
+                      Select All Visible
+                    </button>
+                    <button onClick={deselectAll} className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-3 rounded-xl font-semibold text-sm">
+                      Deselect All
+                    </button>
+                    <button onClick={() => { setSelectionMode(false); setSelectedMovies(new Set()); }} className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-3 rounded-xl font-semibold text-sm">
+                      <X className="w-5 h-5" />Cancel
+                    </button>
+                  </>
+                )}
+                
+                {duplicates.length > 0 && (
+                  <button onClick={() => setShowIssuesPanel(!showIssuesPanel)} className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-xl font-semibold relative">
+                    <AlertCircle className="w-5 h-5" />
+                    Review Issues
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                      {duplicates.length}
+                    </span>
+                  </button>
+                )}
+                <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-semibold">
+                  <Trash2 className="w-5 h-5" />Clear
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    if (window.confirm('⚠️ Clear corrupted localStorage? This will NOT delete your movies in memory. Export JSON first!')) {
+                      try {
+                        localStorage.removeItem('movie-library-data');
+                        showNotification('✅ LocalStorage cleared. Now Export JSON!');
+                      } catch (error) {
+                        showNotification('❌ Could not clear storage');
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-xl font-semibold text-sm"
+                  title="Clear corrupted localStorage"
+                >
+                  🔧 Fix Storage
+                </button>
+              </div>
+            </div>
+
+            {/* Issues Panel */}
+            {showIssuesPanel && duplicates.length > 0 && (
+              <div className={`bg-yellow-900/30 border-2 border-yellow-500/50 rounded-2xl p-6 mb-8`}>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-6 h-6 text-yellow-400" />
+                    <h2 className="text-2xl font-bold text-yellow-400">Issues to Review ({duplicates.length})</h2>
+                  </div>
+                  <button onClick={() => setShowIssuesPanel(false)} className="text-gray-400 hover:text-white">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <p className="text-gray-300 mb-4">Found {duplicates.length} duplicate movie(s). Review and resolve when ready.</p>
+                <div className="flex gap-3 mb-6 flex-wrap">
+                  <button onClick={autoMergeAllDuplicates} className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-semibold">Auto-Merge All (Combine Services)</button>
+                  <button onClick={() => resolveAllDuplicates(true)} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep All Existing</button>
+                  <button onClick={() => resolveAllDuplicates(false)} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep All New</button>
+                </div>
+                
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {duplicates.map((dup, idx) => {
+                    // Calculate merged services
+                    const existingServices = (dup.existing.service || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const newServices = (dup.new.service || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const combinedServices = [...new Set([...existingServices, ...newServices])].join(', ');
+                    
+                    return (
+                      <div key={idx} className="bg-gray-800/70 rounded-xl p-4 border border-yellow-500/30">
+                        <h3 className="text-lg font-bold mb-3 text-yellow-300">"{dup.existing.title}"</h3>
+                        <div className="grid md:grid-cols-4 gap-3">
+                          <div className="bg-gray-900/50 rounded-lg p-3 border border-blue-500/30">
+                            <h4 className="font-semibold text-blue-400 mb-2 text-sm">Entry 1</h4>
+                            <div className="text-xs space-y-1">
+                              <p><span className="text-gray-400">Service:</span> {dup.existing.service || 'N/A'}</p>
+                              <p><span className="text-gray-400">Year:</span> {dup.existing.year || 'N/A'}</p>
+                              <p><span className="text-gray-400">Rating:</span> {dup.existing.imdbRating || 'N/A'}</p>
+                            </div>
+                            <button onClick={() => resolveDuplicate(dup.key, true)} className="w-full bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded mt-2 text-xs font-semibold">Keep This Only</button>
+                          </div>
+                          <div className="bg-gray-900/50 rounded-lg p-3 border border-green-500/30">
+                            <h4 className="font-semibold text-green-400 mb-2 text-sm">Entry 2</h4>
+                            <div className="text-xs space-y-1">
+                              <p><span className="text-gray-400">Service:</span> {dup.new.service || 'N/A'}</p>
+                              <p><span className="text-gray-400">Year:</span> {dup.new.year || 'N/A'}</p>
+                              <p><span className="text-gray-400">Rating:</span> {dup.new.imdbRating || 'N/A'}</p>
+                            </div>
+                            <button onClick={() => resolveDuplicate(dup.key, false)} className="w-full bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded mt-2 text-xs font-semibold">Keep This Only</button>
+                          </div>
+                          <div className="bg-gray-900/50 rounded-lg p-3 border border-purple-500/30">
+                            <h4 className="font-semibold text-purple-400 mb-2 text-sm">Auto-Merge</h4>
+                            <div className="text-xs space-y-1">
+                              <p><span className="text-gray-400">Services:</span> {combinedServices}</p>
+                              <p className="text-gray-400">Combines both entries</p>
+                            </div>
+                            <button onClick={() => {
+                              // Merge this specific duplicate
+                              const merged = {
+                                ...dup.existing,
+                                service: combinedServices,
+                                imdbRating: dup.existing.imdbRating || dup.new.imdbRating,
+                                myRating: dup.existing.myRating || dup.new.myRating,
+                                plot: dup.existing.plot || dup.new.plot,
+                                poster: dup.existing.poster || dup.new.poster,
+                                director: dup.existing.director || dup.new.director,
+                                actors: dup.existing.actors || dup.new.actors,
+                                genre: dup.existing.genre || dup.new.genre,
+                                runtime: dup.existing.runtime || dup.new.runtime,
+                                year: dup.existing.year || dup.new.year,
+                              };
+                              // Parse composite key
+                              const [titleKey, year] = dup.key.split('|');
+                              // Filter out movies matching this title+year combo
+                              const filtered = movies.filter(m => {
+                                const mTitleKey = m.title.trim().toLowerCase();
+                                const mYear = m.year || '';
+                                return !(mTitleKey === titleKey && mYear === year);
+                              });
+                              setMovies([...filtered, merged]);
+                              const remain = duplicates.filter(d => d.key !== dup.key);
+                              setDuplicates(remain);
+                              if (remain.length === 0) setShowIssuesPanel(false);
+                              showNotification('Merged!');
+                            }} className="w-full bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded mt-2 text-xs font-semibold">Merge</button>
+                          </div>
+                          <div className="bg-gray-900/50 rounded-lg p-3 border border-orange-500/30">
+                            <h4 className="font-semibold text-orange-400 mb-2 text-sm">Keep Both</h4>
+                            <p className="text-xs mb-2">Save as 2 separate entries</p>
+                            <button onClick={() => keepBothDuplicates(dup.key)} className="w-full bg-orange-600 hover:bg-orange-700 px-3 py-1.5 rounded mt-2 text-xs font-semibold">Keep Both</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className={`bg-gray-800/50 rounded-2xl p-8 mb-8 border ${currentTheme.border}`}>
+              <label className="flex flex-col items-center cursor-pointer">
+                <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+                <div className={`flex items-center gap-3 ${currentTheme.button} px-8 py-4 rounded-xl`}>
+                  <Upload className="w-6 h-6" />
+                  <span className="text-lg font-semibold">Import CSV</span>
+                </div>
+              </label>
+            </div>
+
+            {movies.length > 0 && (
+              <div className={`bg-gray-800/50 rounded-2xl p-6 mb-8 border ${currentTheme.border}`}>
+                <div className="flex gap-4 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Quick search (title, director, genre, actors)..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                    className="flex-1 bg-gray-700/50 border border-gray-600 rounded-xl px-4 py-3 text-white"
+                  />
+                  <button onClick={handleSearch} className={`${currentTheme.button} px-6 py-3 rounded-xl font-semibold`}>
+                    <Search className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => setShowAdvancedSearch(!showAdvancedSearch)} 
+                    className={`${showAdvancedSearch ? currentTheme.button : 'bg-gray-700 hover:bg-gray-600'} px-6 py-3 rounded-xl font-semibold`}
+                  >
+                    Advanced
+                  </button>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-gray-700/50 border border-gray-600 rounded-xl px-4 py-3 text-white">
+                    <option value="title">Sort by Title</option>
+                    <option value="year">Sort by Year</option>
+                    <option value="genre">Sort by Genre</option>
+                    <option value="director">Sort by Director</option>
+                    <option value="myRating">Sort by My Score</option>
+                    <option value="imdbRating">Sort by IMDb Rating</option>
+                  </select>
+                </div>
+                
+                {/* Advanced Search Panel */}
+                {showAdvancedSearch && (
+                  <div className="bg-gray-700/50 rounded-xl p-6 mb-4 border border-gray-600">
+                    <h3 className="text-lg font-bold mb-4 text-purple-400">Advanced Filters</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Title Contains</label>
+                        <input
+                          type="text"
+                          value={filters.title}
+                          onChange={(e) => setFilters({...filters, title: e.target.value})}
+                          placeholder="Enter title..."
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Director Contains</label>
+                        <input
+                          type="text"
+                          value={filters.director}
+                          onChange={(e) => setFilters({...filters, director: e.target.value})}
+                          placeholder="Enter director..."
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Genre Contains</label>
+                        <input
+                          type="text"
+                          value={filters.genre}
+                          onChange={(e) => setFilters({...filters, genre: e.target.value})}
+                          placeholder="Enter genre..."
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Actor Contains</label>
+                        <input
+                          type="text"
+                          value={filters.actor}
+                          onChange={(e) => setFilters({...filters, actor: e.target.value})}
+                          placeholder="Enter actor..."
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Service Contains</label>
+                        <input
+                          type="text"
+                          value={filters.service}
+                          onChange={(e) => setFilters({...filters, service: e.target.value})}
+                          placeholder="Enter service..."
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                                            <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Media Type</label>
+                        <select
+                          value={filters.mediaType}
+                          onChange={(e) => setFilters({...filters, mediaType: e.target.value})}
+                          className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                        >
+                          <option value="">All</option>
+                          <option value="movie">Movies Only</option>
+                          <option value="tv">TV Series Only</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Year Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={filters.yearFrom}
+                            onChange={(e) => setFilters({...filters, yearFrom: e.target.value})}
+                            placeholder="From"
+                            className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                          />
+                          <input
+                            type="number"
+                            value={filters.yearTo}
+                            onChange={(e) => setFilters({...filters, yearTo: e.target.value})}
+                            placeholder="To"
+                            className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">Rating Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={filters.minRating}
+                            onChange={(e) => setFilters({...filters, minRating: e.target.value})}
+                            placeholder="Min"
+                            className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                          />
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={filters.maxRating}
+                            onChange={(e) => setFilters({...filters, maxRating: e.target.value})}
+                            placeholder="Max"
+                            className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button onClick={applyAdvancedFilters} className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold text-sm">
+                        Apply Filters
+                      </button>
+                      <button onClick={clearAllFilters} className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded-lg font-semibold text-sm">
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-400 text-sm">Showing {sorted.length} of {movies.length}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setViewMode('thumbnail')} className={`p-2 rounded-lg ${viewMode === 'thumbnail' ? currentTheme.button : 'bg-gray-700 text-gray-400'}`} title="Thumbnail">
+                      <Grid3x3 className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => setViewMode('tile')} className={`p-2 rounded-lg ${viewMode === 'tile' ? currentTheme.button : 'bg-gray-700 text-gray-400'}`} title="Tile">
+                      <LayoutGrid className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? currentTheme.button : 'bg-gray-700 text-gray-400'}`} title="Grid">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                    </button>
+                    <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? currentTheme.button : 'bg-gray-700 text-gray-400'}`} title="List">
+                      <List className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* A-Z Index */}
+                <div className="bg-gray-700/30 rounded-xl p-4 mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold text-purple-400">Quick Index:</span>
+                    <button 
+                      onClick={() => setLetterFilter('')}
+                      className={`px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                        !letterFilter ? 'bg-purple-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                      }`}
+                    >
+                      All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')].map(letter => {
+                      // Count movies starting with this letter
+                      const count = movies.filter(m => {
+                        const sortableTitle = getSortableTitle(m.title);
+                        const firstChar = sortableTitle.charAt(0).toUpperCase();
+                        if (letter === '#') {
+                          return !/^[A-Z]/.test(firstChar);
+                        }
+                        return firstChar === letter;
+                      }).length;
+                      
+                      return (
+                        <button
+                          key={letter}
+                          onClick={() => setLetterFilter(letter)}
+                          disabled={count === 0}
+                          className={`px-2 py-1 rounded text-xs font-semibold transition-colors min-w-[32px] ${
+                            letterFilter === letter 
+                              ? 'bg-purple-600 text-white' 
+                              : count > 0 
+                                ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' 
+                                : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                          }`}
+                          title={count > 0 ? `${count} movie${count !== 1 ? 's' : ''}` : 'No movies'}
+                        >
+                          {letter}
+                          {count > 0 && <span className="text-[9px] ml-0.5 opacity-70">({count})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {letterFilter && (
+                    <div className="mt-2 text-xs text-gray-400">
+                      Showing movies starting with "{letterFilter}" • {sorted.length} found
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {sorted.length > 0 ? (
+              <>
+                {/* Thumbnail View - Compact posters only */}
+                {viewMode === 'thumbnail' && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    {sorted.map(m => (
+                      <div key={m.id} className="group cursor-pointer">
+                        <div className="aspect-[2/3] bg-gray-800 rounded-lg overflow-hidden relative">
+                          {/* Media Type Badge */}
+                          {(m.mediaType === 'tv') && (
+                            <div className="absolute top-2 right-2 bg-blue-600 px-2 py-1 rounded-full z-10">
+                              <Tv className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                          {m.poster ? (
+                            <img src={m.poster} alt={m.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Film className="w-8 h-8 text-gray-600" /></div>
+                          )}
+                          <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                            <button onClick={() => fetchSingleMovieData(m.id)} className="bg-orange-600 p-2 rounded"><Download className="w-4 h-4" /></button>
+                            <button onClick={() => handleEditMovie(m)} className="bg-blue-600 p-2 rounded"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => deleteMovie(m.id)} className="bg-red-600 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                        <p className="text-xs mt-1 text-center truncate">{m.title}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tile View - Posters with title overlay */}
+                {viewMode === 'tile' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {sorted.map(m => (
+                      <div key={m.id} className={`rounded-xl overflow-hidden border ${currentTheme.border} group cursor-pointer`}>
+                        <div className="aspect-[2/3] bg-gray-900 relative">
+                          {m.poster ? (
+                            <img src={m.poster} alt={m.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><Film className="w-12 h-12 text-gray-600" /></div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col justify-end p-3">
+                            <h3 className="text-sm font-bold line-clamp-2">{m.title}</h3>
+                            {m.year && <p className="text-xs text-gray-300">{m.year}</p>}
+                          </div>
+                          <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button onClick={() => fetchSingleMovieData(m.id)} className="bg-orange-600 p-2 rounded"><Download className="w-4 h-4" /></button>
+                            <button onClick={() => handleEditMovie(m)} className="bg-blue-600 p-2 rounded"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => deleteMovie(m.id)} className="bg-red-600 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Grid View - Detailed cards */}
+                {viewMode === 'grid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sorted.map(m => (
+                      <div key={m.id} className={`bg-gray-800/50 rounded-2xl overflow-hidden border ${currentTheme.border} ${selectionMode && selectedMovies.has(m.id) ? 'ring-2 ring-purple-500' : ''}`}>
+                        {selectionMode && needsUpdate(m) && (
+                          <div className="p-4 bg-purple-900/30 border-b border-purple-500/30">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedMovies.has(m.id)}
+                                onChange={() => toggleMovieSelection(m.id)}
+                                className="w-5 h-5 rounded"
+                              />
+                              <span className="text-sm">Select for fetch</span>
+                            </label>
+                          </div>
+                        )}
+                        {m.poster && <div className="h-96 bg-gray-900"><img src={m.poster} alt={m.title} className="w-full h-full object-cover" /></div>}
+                        <div className={`bg-gradient-to-r ${currentTheme.gradient} p-4`}>
+                          <div className="flex justify-between items-start">
+                            <h3 className="text-xl font-bold">{m.title}</h3>
+                            <div className="flex gap-2">
+                              <button onClick={() => fetchSingleMovieData(m.id)} className="text-white/70 hover:text-white"><Download className="w-5 h-5" /></button>
+                              <button onClick={() => handleEditMovie(m)} className="text-white/70 hover:text-white"><Edit2 className="w-5 h-5" /></button>
+                              <button onClick={() => deleteMovie(m.id)} className="text-white/70 hover:text-white"><Trash2 className="w-5 h-5" /></button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 space-y-3">
+                          <div className="flex items-center gap-4 text-sm flex-wrap">
+                            {m.year && <div className="flex items-center gap-1"><Calendar className="w-4 h-4" />{m.year}</div>}
+                            {m.runtime && <div className="flex items-center gap-1"><Clock className="w-4 h-4" />{m.runtime}</div>}
+                            {m.imdbRating && <div className="flex items-center gap-1 text-yellow-400"><Star className="w-4 h-4 fill-current" />IMDb: {m.imdbRating}</div>}
+                            {m.myRating && <div className="flex items-center gap-1 text-pink-400"><Star className="w-4 h-4 fill-current" />Mine: {m.myRating}</div>}
+                          </div>
+                          {needsUpdate(m) && (
+                            <div className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-3">
+                              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                <input 
+                                  type="checkbox" 
+                                  checked={excludedFromFetch.has(m.id)}
+                                  onChange={() => toggleFetchExclusion(m.id)}
+                                  className="w-4 h-4 rounded"
+                                />
+                                <span className="text-orange-300">
+                                  {excludedFromFetch.has(m.id) ? '🚫 Excluded from fetch' : '✓ Include in fetch'}
+                                </span>
+                              </label>
+                            </div>
+                          )}
+                          {m.service && <div><span className={`text-xs ${currentTheme.text} font-semibold`}>SERVICE</span><p className="text-sm text-gray-300">{m.service}</p></div>}
+                          {m.genre && <div><span className={`text-xs ${currentTheme.text} font-semibold`}>GENRE</span><p className="text-sm text-gray-300">{m.genre}</p></div>}
+                          {m.director && <div><span className={`text-xs ${currentTheme.text} font-semibold`}>DIRECTOR</span><p className="text-sm text-gray-300">{m.director}</p></div>}
+                          {m.actors && <div><span className={`text-xs ${currentTheme.text} font-semibold`}>CAST</span><p className="text-sm text-gray-300 line-clamp-2">{m.actors}</p></div>}
+                          {m.plot && <div><span className={`text-xs ${currentTheme.text} font-semibold`}>PLOT</span><p className="text-sm text-gray-300 line-clamp-3">{m.plot}</p></div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* List View - Compact rows */}
+                {viewMode === 'list' && (
+                  <div className="space-y-3">
+                    {sorted.map(m => (
+                      <div key={m.id} className={`bg-gray-800/50 rounded-xl border ${currentTheme.border} p-4 ${selectionMode && selectedMovies.has(m.id) ? 'ring-2 ring-purple-500' : ''}`}>
+                        <div className="flex gap-4">
+                          {selectionMode && needsUpdate(m) && (
+                            <div className="flex items-center">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedMovies.has(m.id)}
+                                onChange={() => toggleMovieSelection(m.id)}
+                                className="w-5 h-5 rounded"
+                              />
+                            </div>
+                          )}
+                          <div className="w-16 h-24 flex-shrink-0 bg-gray-900 rounded overflow-hidden">
+                            {m.poster ? (
+                              <img src={m.poster} alt={m.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Film className="w-6 h-6 text-gray-600" /></div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-4 mb-2">
+                              <div>
+<div className="flex items-center gap-2">
+<h3 className="text-lg font-bold">{m.title}</h3>
+                              {/* Media Type Badge */}
+                              {(m.mediaType === 'tv') && (
+                                <div className="bg-blue-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Tv className="w-3 h-3 text-white" />
+                                  <span className="text-xs font-semibold text-white">TV</span>
+                                </div>
+                              )}
+                              </div>
+<div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
+                                  {m.year && <span>{m.year}</span>}
+                                  {m.runtime && <span>• {m.runtime}</span>}
+                                  {m.genre && <span>• {m.genre}</span>}
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <button onClick={() => fetchSingleMovieData(m.id)} className="bg-orange-600/20 hover:bg-orange-600 p-2 rounded"><Download className="w-4 h-4" /></button>
+                                <button onClick={() => handleEditMovie(m)} className="bg-blue-600/20 hover:bg-blue-600 p-2 rounded"><Edit2 className="w-4 h-4" /></button>
+                                <button onClick={() => deleteMovie(m.id)} className="bg-red-600/20 hover:bg-red-600 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm mb-1 flex-wrap">
+                              {m.imdbRating && <div className="flex items-center gap-1 text-yellow-400"><Star className="w-4 h-4 fill-current" />IMDb: {m.imdbRating}</div>}
+                              {m.myRating && <div className="flex items-center gap-1 text-pink-400"><Star className="w-4 h-4 fill-current" />Mine: {m.myRating}</div>}
+                              {m.letterboxdRating && <div className="flex items-center gap-1 text-pink-300"><Star className="w-4 h-4 fill-current" />Letterboxd: {m.letterboxdRating}★</div>}
+                              {m.watchedDate && <div className="flex items-center gap-1 text-cyan-400"><Calendar className="w-4 h-4" />{new Date(m.watchedDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</div>}
+                              {m.rewatch && <span className="text-orange-400 text-xs">🔁 Rewatch</span>}
+                              {m.service && <span className="text-purple-400">📺 {m.service}</span>}
+                            </div>
+                            {m.letterboxdReview && (
+                              <div className="bg-pink-900/20 border border-pink-500/30 rounded-lg p-2 mb-2">
+                                <p className="text-xs text-pink-300 font-semibold mb-1">Letterboxd Review:</p>
+                                <p className="text-sm text-gray-300 line-clamp-2">{m.letterboxdReview}</p>
+                              </div>
+                            )}
+                            {m.notes && (
+                              <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-2 mb-2">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <MessageSquare className="w-3 h-3 text-cyan-400" />
+                                  <p className="text-xs text-cyan-300 font-semibold">Notes:</p>
+                                </div>
+                                <p className="text-sm text-gray-300 line-clamp-2">{m.notes}</p>
+                              </div>
+                            )}
+                            {needsUpdate(m) && (
+                              <label className="flex items-center gap-2 cursor-pointer text-xs mt-2 text-orange-300">
+                                <input 
+                                  type="checkbox" 
+                                  checked={excludedFromFetch.has(m.id)}
+                                  onChange={() => toggleFetchExclusion(m.id)}
+                                  className="w-3 h-3 rounded"
+                                />
+                                {excludedFromFetch.has(m.id) ? '🚫 Excluded from fetch' : '✓ Include in fetch'}
+                              </label>
+                            )}
+                            {m.director && <p className="text-sm text-gray-400"><span className="text-purple-400 font-semibold">Director:</span> {m.director}</p>}
+                            {m.plot && <p className="text-sm text-gray-300 line-clamp-2 mt-1">{m.plot}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : <p className="text-center text-gray-400 py-20">No movies</p>}
+
+            {movies.length > 0 && <p className="text-center text-gray-400 mt-8">Total: {movies.length}</p>}
+
+            {/* Edit/Add Movie Modal */}
+            {editingMovie && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="bg-gray-800 rounded-2xl border border-purple-500/50 max-w-2xl w-full my-8">
+                  <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">{showManualEntry ? 'Add Movie' : 'Edit Movie'}</h2>
+                    <button onClick={() => { setEditingMovie(null); setShowManualEntry(false); }} className="text-gray-400 hover:text-white">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">Title *</label>
+                      <input 
+                        type="text" 
+                        value={editingMovie.title} 
+                        onChange={(e) => setEditingMovie({...editingMovie, title: e.target.value})} 
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" 
+                        placeholder="Movie title" 
+                        autoFocus 
+                      />
+                      
+                      {/* Duplicate Warning */}
+                      {editingMovie.title && editingMovie.title.trim().length > 0 && (() => {
+                        const duplicate = checkForDuplicate(editingMovie.title);
+                        if (duplicate && duplicate.id !== editingMovie.id) {
+                          return (
+                            <div className="mt-2 bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-yellow-400 font-semibold text-sm">Duplicate Movie Found!</p>
+                                  <p className="text-gray-300 text-xs mt-1">
+                                    "{duplicate.title}" already exists with service: <strong>{duplicate.service || 'None'}</strong>
+                                  </p>
+                                  <p className="text-gray-400 text-xs mt-2">
+                                    💡 Consider adding the new service to the existing movie instead of creating a duplicate.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+
+                    
+                    {/* Media Type Toggle */}
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">Media Type</label>
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setEditingMovie({...editingMovie, mediaType: 'movie'})}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                            (editingMovie.mediaType || 'movie') === 'movie'
+                              ? 'bg-purple-600 text-white border-2 border-purple-400'
+                              : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:bg-gray-600'
+                          }`}
+                        >
+                          <Film className="w-5 h-5" />
+                          Movie
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMovie({...editingMovie, mediaType: 'tv'})}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                            editingMovie.mediaType === 'tv'
+                              ? 'bg-blue-600 text-white border-2 border-blue-400'
+                              : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:bg-gray-600'
+                          }`}
+                        >
+                          <Tv className="w-5 h-5" />
+                          TV Series
+                        </button>
+                      </div>
+                    </div>
+
+                    <button onClick={autoFillMovieData} className="w-full bg-orange-600 hover:bg-orange-700 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+                      <Download className="w-5 h-5" />Fetch Movie Data
+                    </button>
+
+                    {showSuggestions && searchSuggestions.length > 0 && (
+                      <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
+                        <h4 className="text-yellow-400 font-semibold mb-3">Select a match:</h4>
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                          {searchSuggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => selectSuggestion(suggestion)}
+                              className="w-full bg-gray-700/50 hover:bg-gray-600 border border-gray-600 hover:border-yellow-500/50 rounded-lg p-3 text-left transition-all"
+                            >
+                              <div className="flex gap-3">
+                                {suggestion.poster && (
+                                  <img src={suggestion.poster} alt={suggestion.title} className="w-12 h-16 object-cover rounded" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-white truncate">{suggestion.title}</p>
+                                  <div className="flex gap-3 text-sm text-gray-400 mt-1">
+                                    <span>{suggestion.year}</span>
+                                    <span>•</span>
+                                    <span className="capitalize">{suggestion.type}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        <button 
+                          onClick={() => { setShowSuggestions(false); setSearchSuggestions([]); }} 
+                          className="w-full mt-3 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">Poster URL</label>
+                      
+                      {/* Poster Preview */}
+                      {editingMovie.poster && (
+                        <div className="mb-3 bg-gray-900 rounded-lg p-3 border border-purple-500/30">
+                          <p className="text-xs text-gray-400 mb-2">Preview:</p>
+                          <div className="flex justify-center">
+                            <img 
+                              src={editingMovie.poster} 
+                              alt="Poster preview" 
+                              className="max-h-64 rounded-lg shadow-lg"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden items-center justify-center w-48 h-64 bg-gray-800 rounded-lg border border-gray-600">
+                              <div className="text-center p-4">
+                                <Film className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                                <p className="text-xs text-gray-500">Preview not available</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <input 
+                        type="text" 
+                        value={editingMovie.poster} 
+                        onChange={(e) => setEditingMovie({...editingMovie, poster: e.target.value})} 
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" 
+                        placeholder="https://..."
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Paste a poster URL to see preview above
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-purple-400 mb-2">Year</label>
+                        <input type="text" value={editingMovie.year} onChange={(e) => setEditingMovie({...editingMovie, year: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-purple-400 mb-2">Runtime</label>
+                        <input type="text" value={editingMovie.runtime} onChange={(e) => setEditingMovie({...editingMovie, runtime: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">
+                        Director
+                        <span className="text-xs text-gray-400 ml-2 font-normal">↑↓ to navigate, Enter to select, Esc to close</span>
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={editingMovie.director} 
+                          onChange={(e) => {
+                            setEditingMovie({...editingMovie, director: e.target.value});
+                            setAutocompleteSuggestions({
+                              ...autocompleteSuggestions,
+                              director: getAutocompleteSuggestions('director', e.target.value)
+                            });
+                            setSelectedSuggestionIndex({...selectedSuggestionIndex, director: -1});
+                          }}
+                          onKeyDown={(e) => {
+                            if (autocompleteSuggestions.director.length > 0) {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setSelectedSuggestionIndex({
+                                  ...selectedSuggestionIndex,
+                                  director: selectedSuggestionIndex.director < autocompleteSuggestions.director.length - 1 
+                                    ? selectedSuggestionIndex.director + 1 
+                                    : selectedSuggestionIndex.director
+                                });
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setSelectedSuggestionIndex({
+                                  ...selectedSuggestionIndex,
+                                  director: selectedSuggestionIndex.director > 0 
+                                    ? selectedSuggestionIndex.director - 1 
+                                    : -1
+                                });
+                              } else if (e.key === 'Enter' && selectedSuggestionIndex.director >= 0) {
+                                e.preventDefault();
+                                setEditingMovie({...editingMovie, director: autocompleteSuggestions.director[selectedSuggestionIndex.director]});
+                                setAutocompleteSuggestions({...autocompleteSuggestions, director: []});
+                                setSelectedSuggestionIndex({...selectedSuggestionIndex, director: -1});
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                setAutocompleteSuggestions({...autocompleteSuggestions, director: []});
+                                setSelectedSuggestionIndex({...selectedSuggestionIndex, director: -1});
+                              }
+                            }
+                          }}
+                          onBlur={() => setTimeout(() => {
+                            setAutocompleteSuggestions({...autocompleteSuggestions, director: []});
+                            setSelectedSuggestionIndex({...selectedSuggestionIndex, director: -1});
+                          }, 200)}
+                          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" 
+                        />
+                        {autocompleteSuggestions.director.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {autocompleteSuggestions.director.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  setEditingMovie({...editingMovie, director: suggestion});
+                                  setAutocompleteSuggestions({...autocompleteSuggestions, director: []});
+                                  setSelectedSuggestionIndex({...selectedSuggestionIndex, director: -1});
+                                }}
+                                className={`w-full text-left px-4 py-2 text-white text-sm transition-colors ${
+                                  idx === selectedSuggestionIndex.director ? 'bg-purple-600' : 'hover:bg-gray-600'
+                                }`}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">
+                        Genre
+                        <span className="text-xs text-gray-400 ml-2 font-normal">↑↓ to navigate, Enter to select, Esc to close</span>
+                      </label>
+                      
+                      {/* Display current genres as tags */}
+                      {editingMovie.genre && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {editingMovie.genre.split(',').map((genre, idx) => {
+                            const trimmedGenre = genre.trim();
+                            if (!trimmedGenre) return null;
+                            return (
+                              <span key={idx} className="bg-green-600/30 border border-green-500/50 rounded-full px-3 py-1 text-sm flex items-center gap-2">
+                                {trimmedGenre}
+                                <button
+                                  type="button"
+                                  onClick={() => removeGenreTag(trimmedGenre)}
+                                  className="text-green-300 hover:text-white"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Input for adding new genres */}
+                      <div className="relative">
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={genreInput}
+                            onChange={(e) => {
+                              setGenreInput(e.target.value);
+                              setAutocompleteSuggestions({
+                                ...autocompleteSuggestions,
+                                genre: getAutocompleteSuggestions('genre', e.target.value)
+                              });
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, genre: -1});
+                            }}
+                            onKeyDown={(e) => {
+                              if (autocompleteSuggestions.genre.length > 0) {
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    genre: selectedSuggestionIndex.genre < autocompleteSuggestions.genre.length - 1 
+                                      ? selectedSuggestionIndex.genre + 1 
+                                      : selectedSuggestionIndex.genre
+                                  });
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    genre: selectedSuggestionIndex.genre > 0 
+                                      ? selectedSuggestionIndex.genre - 1 
+                                      : -1
+                                  });
+                                } else if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (selectedSuggestionIndex.genre >= 0) {
+                                    addGenreTag(autocompleteSuggestions.genre[selectedSuggestionIndex.genre]);
+                                  } else {
+                                    addGenreTag(genreInput);
+                                  }
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  setAutocompleteSuggestions({...autocompleteSuggestions, genre: []});
+                                  setSelectedSuggestionIndex({...selectedSuggestionIndex, genre: -1});
+                                }
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addGenreTag(genreInput);
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => {
+                              setAutocompleteSuggestions({...autocompleteSuggestions, genre: []});
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, genre: -1});
+                            }, 200)}
+                            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm" 
+                            placeholder="Type genre name and press Enter or click Add..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addGenreTag(genreInput)}
+                            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        
+                        {/* Autocomplete suggestions */}
+                        {autocompleteSuggestions.genre.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {autocompleteSuggestions.genre.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  addGenreTag(suggestion);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-white text-sm transition-colors ${
+                                  idx === selectedSuggestionIndex.genre ? 'bg-green-600' : 'hover:bg-gray-600'
+                                }`}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-400 mt-2">
+                        💡 Type genre name and press Enter or click Add. Click × to remove.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">
+                        Actors
+                        <span className="text-xs text-gray-400 ml-2 font-normal">↑↓ to navigate, Enter to select, Esc to close</span>
+                      </label>
+                      
+                      {/* Display current actors as tags */}
+                      {editingMovie.actors && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {editingMovie.actors.split(',').map((actor, idx) => {
+                            const trimmedActor = actor.trim();
+                            if (!trimmedActor) return null;
+                            return (
+                              <span key={idx} className="bg-purple-600/30 border border-purple-500/50 rounded-full px-3 py-1 text-sm flex items-center gap-2">
+                                {trimmedActor}
+                                <button
+                                  type="button"
+                                  onClick={() => removeActorTag(trimmedActor)}
+                                  className="text-purple-300 hover:text-white"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Input for adding new actors */}
+                      <div className="relative">
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={actorInput}
+                            onChange={(e) => {
+                              setActorInput(e.target.value);
+                              setAutocompleteSuggestions({
+                                ...autocompleteSuggestions,
+                                actor: getAutocompleteSuggestions('actor', e.target.value)
+                              });
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, actor: -1});
+                            }}
+                            onKeyDown={(e) => {
+                              if (autocompleteSuggestions.actor.length > 0) {
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    actor: selectedSuggestionIndex.actor < autocompleteSuggestions.actor.length - 1 
+                                      ? selectedSuggestionIndex.actor + 1 
+                                      : selectedSuggestionIndex.actor
+                                  });
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    actor: selectedSuggestionIndex.actor > 0 
+                                      ? selectedSuggestionIndex.actor - 1 
+                                      : -1
+                                  });
+                                } else if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (selectedSuggestionIndex.actor >= 0) {
+                                    addActorTag(autocompleteSuggestions.actor[selectedSuggestionIndex.actor]);
+                                  } else {
+                                    addActorTag(actorInput);
+                                  }
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  setAutocompleteSuggestions({...autocompleteSuggestions, actor: []});
+                                  setSelectedSuggestionIndex({...selectedSuggestionIndex, actor: -1});
+                                }
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addActorTag(actorInput);
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => {
+                              setAutocompleteSuggestions({...autocompleteSuggestions, actor: []});
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, actor: -1});
+                            }, 200)}
+                            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm" 
+                            placeholder="Type actor name and press Enter or click Add..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addActorTag(actorInput)}
+                            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        
+                        {/* Autocomplete suggestions */}
+                        {autocompleteSuggestions.actor.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {autocompleteSuggestions.actor.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  addActorTag(suggestion);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-white text-sm transition-colors ${
+                                  idx === selectedSuggestionIndex.actor ? 'bg-purple-600' : 'hover:bg-gray-600'
+                                }`}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-400 mt-2">
+                        💡 Type actor name and press Enter or click Add. Click × to remove.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">
+                        Service
+                        <span className="text-xs text-gray-400 ml-2 font-normal">↑↓ to navigate, Enter to select, Esc to close</span>
+                      </label>
+                      
+                      {/* Display current services as tags */}
+                      {editingMovie.service && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {editingMovie.service.split(',').map((service, idx) => {
+                            const trimmedService = service.trim();
+                            if (!trimmedService) return null;
+                            return (
+                              <span key={idx} className="bg-blue-600/30 border border-blue-500/50 rounded-full px-3 py-1 text-sm flex items-center gap-2">
+                                {trimmedService}
+                                <button
+                                  type="button"
+                                  onClick={() => removeServiceTag(trimmedService)}
+                                  className="text-blue-300 hover:text-white"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Input for adding new services */}
+                      <div className="relative">
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={serviceInput}
+                            onChange={(e) => {
+                              setServiceInput(e.target.value);
+                              setAutocompleteSuggestions({
+                                ...autocompleteSuggestions,
+                                service: getAutocompleteSuggestions('service', e.target.value)
+                              });
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, service: -1});
+                            }}
+                            onKeyDown={(e) => {
+                              if (autocompleteSuggestions.service.length > 0) {
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    service: selectedSuggestionIndex.service < autocompleteSuggestions.service.length - 1 
+                                      ? selectedSuggestionIndex.service + 1 
+                                      : selectedSuggestionIndex.service
+                                  });
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setSelectedSuggestionIndex({
+                                    ...selectedSuggestionIndex,
+                                    service: selectedSuggestionIndex.service > 0 
+                                      ? selectedSuggestionIndex.service - 1 
+                                      : -1
+                                  });
+                                } else if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (selectedSuggestionIndex.service >= 0) {
+                                    addServiceTag(autocompleteSuggestions.service[selectedSuggestionIndex.service]);
+                                  } else {
+                                    addServiceTag(serviceInput);
+                                  }
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  setAutocompleteSuggestions({...autocompleteSuggestions, service: []});
+                                  setSelectedSuggestionIndex({...selectedSuggestionIndex, service: -1});
+                                }
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addServiceTag(serviceInput);
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => {
+                              setAutocompleteSuggestions({...autocompleteSuggestions, service: []});
+                              setSelectedSuggestionIndex({...selectedSuggestionIndex, service: -1});
+                            }, 200)}
+                            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm" 
+                            placeholder="Type service name and press Enter or click Add..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addServiceTag(serviceInput)}
+                            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        
+                        {/* Autocomplete suggestions */}
+                        {autocompleteSuggestions.service.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            {autocompleteSuggestions.service.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  addServiceTag(suggestion);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-white text-sm transition-colors ${
+                                  idx === selectedSuggestionIndex.service ? 'bg-blue-600' : 'hover:bg-gray-600'
+                                }`}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-400 mt-2">
+                        💡 Type service name and press Enter or click Add. Click × to remove.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-purple-400 mb-2">IMDb Rating</label>
+                        <input type="text" value={editingMovie.imdbRating} onChange={(e) => setEditingMovie({...editingMovie, imdbRating: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-purple-400 mb-2">My Score</label>
+                        <input type="text" value={editingMovie.myRating} onChange={(e) => setEditingMovie({...editingMovie, myRating: e.target.value})} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Letterboxd Section */}
+                    <div className="bg-pink-900/30 border border-pink-500/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star className="w-5 h-5 text-pink-400" />
+                        <h3 className="text-pink-400 font-semibold">Letterboxd Data</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-pink-300 mb-2">Rating (0.5 to 5.0)</label>
+                          <input 
+                            type="text" 
+                            value={editingMovie.letterboxdRating || ''} 
+                            onChange={(e) => setEditingMovie({...editingMovie, letterboxdRating: e.target.value})} 
+                            placeholder="4.5"
+                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-pink-300 mb-2">Watched Date</label>
+                          <input 
+                            type="date" 
+                            value={editingMovie.watchedDate || ''} 
+                            onChange={(e) => setEditingMovie({...editingMovie, watchedDate: e.target.value})} 
+                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white" 
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <label className="block text-sm font-semibold text-pink-300 mb-2">Letterboxd Review</label>
+                        <textarea 
+                          value={editingMovie.letterboxdReview || ''} 
+                          onChange={(e) => setEditingMovie({...editingMovie, letterboxdReview: e.target.value})} 
+                          rows={3} 
+                          placeholder="Your review from Letterboxd..."
+                          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white resize-none" 
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <label className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            checked={editingMovie.rewatch || false}
+                            onChange={(e) => setEditingMovie({...editingMovie, rewatch: e.target.checked})}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-pink-300">Rewatch</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Personal Notes Section */}
+                    <div className="bg-cyan-900/30 border border-cyan-500/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare className="w-5 h-5 text-cyan-400" />
+                        <h3 className="text-cyan-400 font-semibold">Personal Notes</h3>
+                      </div>
+                      <textarea 
+                        value={editingMovie.notes || ''} 
+                        onChange={(e) => setEditingMovie({...editingMovie, notes: e.target.value})} 
+                        rows={4} 
+                        placeholder="Your personal thoughts, viewing context, who you watched with, memorable moments..."
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white resize-none" 
+                      />
+                    </div>
+
+                    <div className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={excludedFromFetch.has(editingMovie.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setExcludedFromFetch(new Set([...excludedFromFetch, editingMovie.id]));
+                            } else {
+                              const newSet = new Set(excludedFromFetch);
+                              newSet.delete(editingMovie.id);
+                              setExcludedFromFetch(newSet);
+                            }
+                          }}
+                          className="w-5 h-5 rounded"
+                        />
+                        <div className="flex-1">
+                          <span className="text-orange-300 font-semibold">Exclude from Fetch</span>
+                          <p className="text-xs text-gray-400 mt-1">Check this to preserve your manual edits and prevent this movie from being auto-fetched</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">Plot</label>
+                      <textarea value={editingMovie.plot} onChange={(e) => setEditingMovie({...editingMovie, plot: e.target.value})} rows={4} className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white resize-none" />
+                    </div>
+                  </div>
+
+                  <div className="p-6 border-t border-gray-700 flex gap-4">
+                    {showManualEntry ? (
+                      <>
+                        <button onClick={handleSaveNewMovie} className="flex-1 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold">Save & Add Another</button>
+                        <button onClick={handleSaveAndClose} className="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-semibold">Save & Close</button>
+                      </>
+                    ) : (
+                      <button onClick={handleUpdateMovie} className="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-semibold">Save Changes</button>
+                    )}
+                    <button onClick={() => { setEditingMovie(null); setShowManualEntry(false); }} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fetch Review Modal */}
+            {showFetchReview && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="bg-gray-800 rounded-2xl border border-yellow-500/50 max-w-4xl w-full my-8">
+                  <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center">
+                    <div>
+                      <h2 className="text-2xl font-bold text-yellow-400">Review Fetch List</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {movies.filter(shouldFetchMovie).length} movies will be fetched 
+                        {excludedFromFetch.size > 0 && <span className="text-red-400"> ({excludedFromFetch.size} excluded)</span>}
+                      </p>
+                    </div>
+                    <button onClick={() => setShowFetchReview(false)} className="text-gray-400 hover:text-white">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="flex gap-3 mb-4">
+                      <button 
+                        onClick={clearAllExclusions} 
+                        disabled={excludedFromFetch.size === 0}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-2 rounded-lg text-sm font-semibold"
+                      >
+                        Include All
+                      </button>
+                      <p className="text-sm text-gray-400 flex items-center">
+                        💡 Check movies to <strong className="text-yellow-400 mx-1">exclude</strong> from fetching (to preserve your manual edits)
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-700/50 rounded-xl p-4 max-h-[60vh] overflow-y-auto">
+                      <div className="space-y-2">
+                        {movies
+                          .filter(m => !m.poster || !m.plot || !m.imdbRating)
+                          .map(m => (
+                            <div 
+                              key={m.id} 
+                              className={`flex items-center gap-4 p-3 rounded-lg ${
+                                excludedFromFetch.has(m.id) 
+                                  ? 'bg-red-900/30 border border-red-500/30' 
+                                  : 'bg-gray-800/50 border border-gray-600'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={excludedFromFetch.has(m.id)}
+                                onChange={() => toggleFetchExclusion(m.id)}
+                                className="w-5 h-5 rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start gap-3">
+                                  {m.poster && (
+                                    <img src={m.poster} alt={m.title} className="w-12 h-16 object-cover rounded flex-shrink-0" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-white truncate">{m.title}</h4>
+                                    <p className="text-sm text-gray-400">
+                                      {m.year && <span>{m.year}</span>}
+                                      {m.director && <span> • {m.director}</span>}
+                                    </p>
+                                    <div className="flex gap-2 mt-1 text-xs">
+                                      {!m.poster && <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">No Poster</span>}
+                                      {!m.plot && <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">No Plot</span>}
+                                      {!m.imdbRating && <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">No Rating</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-sm font-semibold flex-shrink-0">
+                                {excludedFromFetch.has(m.id) ? (
+                                  <span className="text-red-400">EXCLUDED</span>
+                                ) : (
+                                  <span className="text-green-400">WILL FETCH</span>
+                                )}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 border-t border-gray-700 flex gap-4">
+                    <button 
+                      onClick={() => setShowFetchReview(false)} 
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-semibold"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Settings Modal */}
+            {showSettings && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-2xl border border-purple-500/50 max-w-md w-full">
+                  <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Settings className="w-6 h-6 text-purple-400" />
+                      <h2 className="text-2xl font-bold">Settings</h2>
+                    </div>
+                    <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">OMDB API Key</label>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Get your free API key at <a href="http://www.omdbapi.com/apikey.aspx" target="_blank" className="text-blue-400 hover:underline">omdbapi.com</a>
+                      </p>
+                      <input 
+                        type="text" 
+                        value={apiKey} 
+                        onChange={(e) => setApiKey(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white font-mono text-sm"
+                        placeholder="Enter your API key"
+                      />
+                      <button 
+                        onClick={async () => {
+                          showNotification('Testing API key...');
+                          try {
+                            const response = await fetch(`https://www.omdbapi.com/?apikey=${apiKey}&t=Matrix`);
+                            const data = await response.json();
+                            if (data.Response === 'True') {
+                              showNotification('✅ API key is valid and working!');
+                            } else {
+                              showNotification(`❌ API Error: ${data.Error}`);
+                            }
+                          } catch (error) {
+                            showNotification('❌ Network error testing key');
+                          }
+                        }}
+                        className="mt-2 w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                      >
+                        Test API Key
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-purple-400 mb-2">Fetch Batch Size</label>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Limit how many movies to fetch per batch (to manage API limits)
+                      </p>
+                      <select 
+                        value={batchSize} 
+                        onChange={(e) => setBatchSize(Number(e.target.value))}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                      >
+                        <option value={25}>25 movies</option>
+                        <option value={50}>50 movies</option>
+                        <option value={100}>100 movies</option>
+                        <option value={250}>250 movies</option>
+                        <option value={500}>500 movies</option>
+                        <option value={1000}>1000 movies (max daily limit)</option>
+                      </select>
+                    </div>
+
+                    <div className="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-4">
+                      <h4 className="text-yellow-400 font-semibold mb-2 text-sm">Your Library Status:</h4>
+                      <div className="text-xs text-gray-300 space-y-1">
+                        <p><strong>Total Movies:</strong> {movies.length}</p>
+                        <p><strong>Need Data:</strong> {movies.filter(needsUpdate).length} movies</p>
+                        <p><strong>Already Complete:</strong> {movies.filter(m => !needsUpdate(m)).length} movies</p>
+                        <p><strong>Excluded from Fetch:</strong> {excludedFromFetch.size} movies</p>
+                        <p className="text-blue-300 mt-2 pt-2 border-t border-yellow-500/30">
+                          💡 Next fetch will use approximately <strong>{movies.filter(shouldFetchMovie).length} API calls</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
+                      <h4 className="text-blue-400 font-semibold mb-2 text-sm">API Limit Info:</h4>
+                      <ul className="text-xs text-gray-300 space-y-1">
+                        <li>• <strong>Free tier:</strong> 1,000 requests per day</li>
+                        <li>• <strong>Reset time:</strong> 24 hours after your first request</li>
+                        <li>• <strong>Example:</strong> Hit limit at 2pm → Resets at 2pm next day</li>
+                        <li>• <strong>Smart fetching:</strong> App automatically skips complete movies</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+                      <h4 className="text-gray-300 font-semibold mb-2 text-sm">How to get a free API key:</h4>
+                      <ol className="text-xs text-gray-400 space-y-1 list-decimal list-inside">
+                        <li>Visit <a href="http://www.omdbapi.com/apikey.aspx" target="_blank" className="text-blue-400 hover:underline">omdbapi.com/apikey.aspx</a></li>
+                        <li>Select FREE tier (1,000 daily requests)</li>
+                        <li>Enter your email address</li>
+                        <li>Check email and click activation link</li>
+                        <li>Copy your API key and paste above</li>
+                      </ol>
+                    </div>
+                  </div>
+
+                  <div className="p-6 border-t border-gray-700 flex gap-4">
+                    <button 
+                      onClick={() => { saveApiKey(apiKey); setShowSettings(false); }} 
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-xl font-semibold"
+                    >
+                      Save & Close
+                    </button>
+                    <button 
+                      onClick={() => setShowSettings(false)} 
+                      className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Clear Confirm Modal */}
+            {showClearConfirm && (
+              <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-2xl border border-red-500/50 max-w-md w-full p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <AlertCircle className="w-6 h-6 text-red-400" />
+                    <h2 className="text-2xl font-bold">Clear Library?</h2>
+                  </div>
+                  <p className="text-gray-300 mb-6">Delete all {movies.length} movies? This cannot be undone.</p>
+                  <div className="flex gap-4">
+                    <button onClick={clearLibrary} className="flex-1 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-semibold">Yes, Clear All</button>
+                    <button onClick={() => setShowClearConfirm(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-xl font-semibold">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Duplicate Resolution Modal - Alternative detailed view */}
+            {showDuplicateModal && duplicates.length > 0 && (
+              <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto p-4">
+                <div className="min-h-screen flex items-center justify-center py-8">
+                  <div className="bg-gray-800 rounded-2xl border border-yellow-500/50 w-full max-w-6xl">
+                    <div className="bg-gray-800 p-6 border-b border-gray-700">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <AlertCircle className="w-6 h-6 text-yellow-400" />
+                          <h2 className="text-2xl font-bold">Resolve MEGA Duplicates</h2>
+                        </div>
+                        <button onClick={() => setShowDuplicateModal(false)} className="text-gray-400 hover:text-white">
+                          <X className="w-6 h-6" />
+                        </button>
+                      </div>
+                      <p className="text-gray-300 mb-4">Found {duplicates.length} movie(s) with matching titles involving MEGA.</p>
+                      <div className="flex gap-3">
+                        <button onClick={() => { resolveAllDuplicates(true); setShowDuplicateModal(false); }} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep All Existing</button>
+                        <button onClick={() => { resolveAllDuplicates(false); setShowDuplicateModal(false); }} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep All New</button>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 space-y-6">
+                      {duplicates.map((dup, idx) => (
+                        <div key={idx} className="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                          <h3 className="text-xl font-bold mb-2 text-purple-300">#{idx + 1}: "{dup.existing.title}"</h3>
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div className="bg-gray-800 rounded-lg p-4 border-2 border-blue-500/50">
+                              <h4 className="font-semibold text-blue-400 mb-3">Existing</h4>
+                              <div className="text-sm mb-3">
+                                <p>Service: {dup.existing.service}</p>
+                                <p>Year: {dup.existing.year || 'N/A'}</p>
+                              </div>
+                              <button onClick={() => resolveDuplicate(dup.key, true)} className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep This</button>
+                            </div>
+                            <div className="bg-gray-800 rounded-lg p-4 border-2 border-green-500/50">
+                              <h4 className="font-semibold text-green-400 mb-3">New from CSV</h4>
+                              <div className="text-sm mb-3">
+                                <p>Service: {dup.new.service}</p>
+                                <p>Year: {dup.new.year || 'N/A'}</p>
+                              </div>
+                              <button onClick={() => resolveDuplicate(dup.key, false)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep This</button>
+                            </div>
+                            <div className="bg-gray-800 rounded-lg p-4 border-2 border-purple-500/50">
+                              <h4 className="font-semibold text-purple-400 mb-3">Keep Both</h4>
+                              <p className="text-sm mb-3">Save both as separate entries</p>
+                              <button onClick={() => keepBothDuplicates(dup.key)} className="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-semibold">Keep Both</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Floating Action Menu */}
+            {showFloatingMenu && (
+              <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+                {/* Quick Action Buttons */}
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={handleAddMovie}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Add Movie"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Add</span>
+                  </button>
+                  <button 
+                    onClick={saveMovies}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Save Now"
+                  >
+                    <Save className="w-5 h-5" />
+                    <span>Save</span>
+                  </button>
+                  
+                  {/* Export/Import */}
+                  <button 
+                    onClick={exportToJSON}
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Export JSON"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>JSON</span>
+                  </button>
+                  
+                  <label 
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 cursor-pointer text-sm"
+                    title="Import JSON"
+                  >
+                    <input type="file" accept=".json" onChange={handleJSONUpload} className="hidden" />
+                    <FolderOpen className="w-5 h-5" />
+                    <span>Load</span>
+                  </label>
+                  
+                  <button 
+                    onClick={exportToCSV}
+                    className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Export CSV"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>CSV</span>
+                  </button>
+                  
+                  <button 
+                    onClick={detectExistingDuplicates}
+                    className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Check for Duplicates"
+                  >
+                    <AlertCircle className="w-5 h-5" />
+                    <span>Duplicates</span>
+                  </button>
+                  
+                  <button 
+                    onClick={autoDeduplicate}
+                    className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Auto-Deduplicate All"
+                  >
+                    <AlertCircle className="w-5 h-5" />
+                    <span>Dedupe</span>
+                  </button>
+                  
+                  <button 
+                    onClick={performUndo}
+                    disabled={undoStack.length === 0}
+                    className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-800 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title={undoStack.length > 0 ? `Undo: ${undoStack[undoStack.length - 1]?.description}` : 'Nothing to undo'}
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7v6h6"/>
+                      <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
+                    </svg>
+                    <span>Undo</span>
+                  </button>
+                  
+                  {/* Fetch Controls */}
+                  {!selectionMode ? (
+                    <>
+                      <button 
+                        onClick={fetchPostersForAll} 
+                        disabled={fetchingPosters}
+                        className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Fetch Movie Data"
+                      >
+                        <Download className="w-5 h-5" />
+                        <span>{fetchingPosters ? 'Fetch...' : 'Fetch'}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setShowFetchReview(true)}
+                        className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Review Fetch List"
+                      >
+                        <List className="w-5 h-5" />
+                        <span>Review</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => setSelectionMode(true)}
+                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Select Movies"
+                      >
+                        <Grid3x3 className="w-5 h-5" />
+                        <span>Select</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={fetchSelectedMovies} 
+                        disabled={fetchingPosters || selectedMovies.size === 0}
+                        className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title={`Fetch Selected (${selectedMovies.size})`}
+                      >
+                        <Download className="w-5 h-5" />
+                        <span>({selectedMovies.size})</span>
+                      </button>
+                      
+                      <button 
+                        onClick={selectAllVisible}
+                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Select All"
+                      >
+                        <Grid3x3 className="w-5 h-5" />
+                        <span>All</span>
+                      </button>
+                      
+                      <button 
+                        onClick={deselectAll}
+                        className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Deselect All"
+                      >
+                        <X className="w-5 h-5" />
+                        <span>Clear</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => { setSelectionMode(false); setSelectedMovies(new Set()); }}
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                        title="Cancel Selection"
+                      >
+                        <X className="w-5 h-5" />
+                        <span>Cancel</span>
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Settings & Clear */}
+                  <button 
+                    onClick={() => setShowFloatingSearch(!showFloatingSearch)}
+                    className={`flex items-center gap-2 ${showFloatingSearch ? 'bg-blue-600 hover:bg-blue-700' : 'bg-cyan-600 hover:bg-cyan-700'} px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm`}
+                    title="Quick Search"
+                  >
+                    <Search className="w-5 h-5" />
+                    <span>Search</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('⚠️ Clear corrupted localStorage? This will NOT delete your movies in memory. Export JSON first!')) {
+                        try {
+                          localStorage.removeItem('movie-library-data');
+                          showNotification('✅ LocalStorage cleared. Now Export JSON!');
+                        } catch (error) {
+                          showNotification('❌ Could not clear storage');
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Fix corrupted localStorage"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    <span>Fix Storage</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowSettings(true)}
+                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Settings"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Settings</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowClearConfirm(true)}
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-full font-semibold shadow-2xl transform transition-transform hover:scale-105 text-sm"
+                    title="Clear Library"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span>Clear</span>
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Floating Search Panel */}
+            {showFloatingSearch && showFloatingMenu && (
+              <div className="fixed bottom-6 left-6 bg-gray-800 rounded-2xl border border-cyan-500/50 shadow-2xl z-40 p-4 w-96 max-w-[calc(100vw-3rem)]">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-cyan-400">Quick Search</h3>
+                  <button 
+                    onClick={() => setShowFloatingSearch(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Search title, director, genre, actors..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm"
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleSearch}
+                      className="flex-1 bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
+                    >
+                      <Search className="w-4 h-4" />
+                      Search
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('');
+                        setActiveSearch('');
+                        setLetterFilter('');
+                        showNotification('Search cleared');
+                      }}
+                      className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-semibold text-sm"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  
+                  {activeSearch && (
+                    <div className="text-xs text-gray-400 bg-gray-700/50 rounded px-3 py-2">
+                      Searching for: <span className="text-cyan-400 font-semibold">"{activeSearch}"</span> • {sorted.length} found
+                    </div>
+                  )}
+                  
+                  <div className="pt-2 border-t border-gray-700">
+                    <button 
+                      onClick={() => setShowAdvancedSearch(true)}
+                      className="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold text-sm"
+                    >
+                      Advanced Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<MovieLibrary />, document.getElementById('root'));
+  </script>
+</body>
+</html>
