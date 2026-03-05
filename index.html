@@ -93,7 +93,7 @@
       const [excludedFromFetch, setExcludedFromFetch] = useState(new Set());
       const [showFloatingButtons, setShowFloatingButtons] = useState(false);
       const [showFloatingMenu, setShowFloatingMenu] = useState(false);
-      const [githubJsonUrl, setGithubJsonUrl] = useState('');
+      const [githubJsonUrl, setGithubJsonUrl] = useState('https://github.com/djg6801-cpu/Groves-Movie-Library/blob/main/movies.json');
       const [githubSyncStatus, setGithubSyncStatus] = useState('');
       const [autocompleteSuggestions, setAutocompleteSuggestions] = useState({
         director: [],
@@ -172,13 +172,14 @@
         const loadGithubUrl = async () => {
           try {
             const result = await window.storage.get('github-json-url');
-            if (result && result.value) {
-              setGithubJsonUrl(result.value);
-              // Auto-fetch from GitHub on startup
-              fetchFromGithub(result.value);
-            }
+            const url = (result && result.value) 
+              ? result.value 
+              : 'https://github.com/djg6801-cpu/Groves-Movie-Library/blob/main/movies.json';
+            setGithubJsonUrl(url);
+            fetchFromGithub(url);
           } catch (error) {
-            console.log('No GitHub URL configured');
+            // Fall back to hardcoded URL
+            fetchFromGithub('https://github.com/djg6801-cpu/Groves-Movie-Library/blob/main/movies.json');
           }
         };
         
